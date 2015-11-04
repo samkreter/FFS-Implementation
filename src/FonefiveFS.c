@@ -1,2 +1,84 @@
-#include "../include/FonefiveFS.h"
+#include "../include/FonefiveFS_basic.h"
 
+
+
+
+int fs_format(const char *const fname){
+	if(fname){
+		block_store_t* bs = block_store_create();
+		if(bs){
+			allocateInodeTableInBS(bs);
+		}
+		return -1;
+	}
+	return -1;
+}
+
+
+int allocateInodeTableInBS(blockstore_t* bs){
+	if(bs){
+
+
+		size_t i = 0;
+		for(i=8; i<41; i++){
+			if(!block_store_request(bs,i)){
+				return -1;
+			}
+		}
+
+		iNode_t rootNode;
+		rootNode.fname = "/";
+		//allocate the root directory node
+		rootNode.data_ptrs[0] = block_store_allocate(bs);
+
+		rootDir
+		
+		if(write_to_back_store(rootNode,8,48)){
+			return 1;
+		}
+		return -11;
+		
+	}
+	return -1;
+}
+
+// iNode_t* createInodeTable(block_store_t* bs){
+// 	iNode_t* iNodeTable = malloc(sizeof(iNodeTable_t)*256);
+	
+// 	if(iNodeTable){
+// 		iNodeTable[0].fname = "/";
+// 		iNodeTable[0].data_ptrs[0] = 8;
+// 		return iNodeTable;
+
+// 		// for(i = 8; i < 41; i++){
+// 		// 	if(block_store_request(bs,i)){
+// 		// 		iNode_t buffer[8];
+// 		// 		int startingPos = (i-8)*8;
+// 		// 		memcpy(buffer,iNodeTable[startingPos],sizeof(iNode_t)*8);
+// 		// 		if(!write_to_back_store(buffer,i)){
+// 		// 			printf("Failed to write to backing store for inode Creatation")
+// 		// 		}
+// 		// 	}else{
+// 		// 		printf("Could not allocate the needed inodeTable\n");
+// 		// 		return NULL;
+// 		// 	}
+// 		// }
+
+		
+// 	}
+// 	return NULL;
+// }
+
+///
+/// Mounts the specified file and returns an F15FS object
+/// \param fname the file to load
+/// \return An F15FS object ready to use, NULL on error
+///
+F15FS_t *fs_mount(const char *const fname);
+
+/// Unmounts, closes, and destructs the given object,
+///  saving all unwritten contents (if any) to file
+/// \param fs The F15FS file
+/// \return 0 on success, < 0 on error
+///
+int fs_unmount(F15FS_t *fs);

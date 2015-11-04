@@ -5,7 +5,7 @@
 #include <block_store.h>
 // Probably other things
 
-typedef struct F15FS F15FS_t;
+
 
 // Enum to differentiate between different kinds of files
 typedef enum {
@@ -18,6 +18,23 @@ typedef enum {
 // But the other option is to add more functions to parse and handle that struct
 #define FNAME_MAX 47
 #define DIR_REC_MAX 20
+
+
+typedef struct metaData{
+	char placeholder[48];
+} metaData_t;
+
+typedef struct iNodeTable {
+	char fname[FNAME_MAX+1];
+	metaData_t metaData;
+	uint32_t data_ptrs[8];
+} iNode_t;
+
+//set up the file system structure
+typedef struct F15FS {
+	block_store_t *block_store;
+	iNode_t* inodeTable;
+} F15FS_t;
 
 // It's a directory entry. Won't really be used internally
 typedef struct {
@@ -38,6 +55,9 @@ typedef struct dir_rec {
 /// \return Error code, 0 for success, < 0 for error
 ///
 int fs_format(const char *const fname);
+
+
+iNode_t** createInodeTable();
 
 ///
 /// Mounts the specified file and returns an F15FS object
