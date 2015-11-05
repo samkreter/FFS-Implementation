@@ -103,13 +103,14 @@ int allocateInodeTableInBS(block_store_t* bs){
 
 int flushiNodeTableToBS(F15FS_t* fs){
 	if(fs){
+		printf("Got params fint\n");
 		size_t i = 8;
 		uint8_t buffer[1024];
 		int startingPos = 0;
 		for(i = 8; i < 41; i++){
 			startingPos = (i-8)*8;
 			if(memcpy(&buffer,&(fs->inodeTable[startingPos]),1024) != NULL){
-				if(block_store_write(fs->bs,i,&buffer,1024,0) == 1024){
+				if(block_store_write(fs->bs,i,&buffer,1024,0) != 1024){
 					return 0;
 				}
 			}
@@ -127,11 +128,11 @@ int getiNodeTableFromBS(F15FS_t* fs){
 	if(fs){
 		size_t i = 8;
 		uint8_t buffer[1024];
-		int startingPos = 0;
+		//int startingPos = 0;
 		for(i = 8; i < 41; i++){
-			startingPos = (i-8)*8;
+			//startingPos = (i-8)*8;
 			if(block_store_read(fs->bs,i,&buffer,1024,0) == 1024){
-				if(memcpy(&(fs->inodeTable[startingPos]),&buffer,1024) == NULL){
+				if(memcpy(&(fs->inodeTable),&buffer,1024) == NULL){
 					return 0;
 				}
 			}
@@ -173,8 +174,11 @@ F15FS_t *fs_mount(const char *const fname){
 /// \return 0 on success, < 0 on error
 ///
 int fs_unmount(F15FS_t *fs){
+	printf("got to unmount\n");
 	if(fs && fs->inodeTable && fs->bs){
-		if(flushiNodeTableToBS(F15FS_t* fs)){
+		printf("Got into file checking\n");
+		if(flushiNodeTableToBS(fs)){
+			printf("Good after flushinodetable\n");
 			block_store_flush(fs->bs);
 			if(block_store_errno() == BS_OK){
 				printf("good in the flushing\n");
