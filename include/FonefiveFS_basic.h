@@ -85,6 +85,7 @@ int allocateInodeTableInBS(block_store_t* bs);
 
 
 int getiNodeTableFromBS(F15FS_t* fs);
+int flushiNodeTableToBS(F15FS_t* fs);
 
 ///
 /// Mounts the specified file and returns an F15FS object
