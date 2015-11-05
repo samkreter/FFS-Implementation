@@ -19,14 +19,17 @@ typedef enum {
 #define FNAME_MAX 47
 #define DIR_REC_MAX 20
 
+typedef uint8_t inode_ptr_t;
+typedef uint32_t block_ptr_t;
 
 typedef struct metaData{
-	char placeholder[48];
-} metaData_t;
+    ftype_t filetype;
+	char placeholder[47];
+} inode_meta_data_t;
 
 typedef struct iNodeTable {
 	char fname[FNAME_MAX+1];
-	metaData_t metaData;
+	inode_meta_data_t metaData;
 	uint32_t data_ptrs[8];
 } iNode_t;
 
@@ -49,6 +52,25 @@ typedef struct dir_rec {
     dir_entry_t contents[DIR_REC_MAX];
 } dir_rec_t;
 
+
+//for dir block data/////////////////
+//the entry that holds the filename and inode ptr, could be a directory
+typedef struct {
+    char* filename[FNAME_MAX+1];
+    inode_ptr_t inode;
+}dir_entry_t;
+
+//metadata for the directory itsself
+typedef struct {
+    char filler[44];
+} dir_meta_t;
+//the actuall entry put onto the block itself
+typedef struct {
+    dir_meta_t metaData;
+    dir_entry_t entries[DIR_REC_MAX];
+} dir_block_t;
+//////////////////////////////////////
+
 ///
 /// Creates a new F15FS file at the given location
 /// \param fname The file to create (or overwrite)
@@ -56,8 +78,6 @@ typedef struct dir_rec {
 ///
 int fs_format(const char *const fname);
 
-
-iNode_t** createInodeTable();
 
 ///
 /// Mounts the specified file and returns an F15FS object
