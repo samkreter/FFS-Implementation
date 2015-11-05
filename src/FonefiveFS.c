@@ -5,12 +5,16 @@
 
 int fs_format(const char *const fname){
 	if(fname){
+		printf("GOt into fs_format\n");
 		block_store_t* bs = block_store_create();
 		if(bs){
+			printf("Block Store Created good\n");
 			if(allocateInodeTableInBS(bs) >= 0){
+				printf("got through allocation\n");
                 //write the block store to the file
                 block_store_link(bs, fname);
-                return 1;
+                printf("got linked up\n");
+                return 0;
             }
 
 		}
@@ -19,21 +23,24 @@ int fs_format(const char *const fname){
 }
 
 
-dir_ptr_t setUpDirBlock(const blockstore_t* bs){
+block_ptr_t setUpDirBlock(block_store_t* bs){
 
     dir_block_t newDir;
-    newDir.meteData.size = 0;
-    dir_ptr_t dirBlockPos;
-
-    if(dirBlockPos = block_store_allocate(bs)){
-        if(write_to_back_store(newDir,dirBlockPos,1024)){
-            return dirBlockPos;
-        }
+    newDir.metaData.size = 0;
+    block_ptr_t dirBlockPos;
+    printf("In setupdirblock\n");
+    if((dirBlockPos = block_store_allocate(bs))){
+    	printf("alloction worked in sudb\n");
+    	if(block_store_write(bs, dirBlockPos, &newDir, 1024, 0) == 1024){
+    		printf("all good in the sudb with \n");
+    		return dirBlockPos;
+    	}
+     
     }
     return -1;
 }
 
-int allocateInodeTableInBS(const blockstore_t* bs){
+int allocateInodeTableInBS(block_store_t* bs){
 
     if(bs){
 		size_t i = 0;
@@ -46,10 +53,10 @@ int allocateInodeTableInBS(const blockstore_t* bs){
 
 		iNode_t rootNode;
         //set root filename as '/'
-		rootNode.fname = "/";
+		rootNode.fname[0] = '/';
 
         //set the file type to a directory
-        rootNode.meteData.filetype = DIRECTORY;
+        rootNode.metaData.filetype = DIRECTORY;
 
 		//allocate the root directory node and check it worked
 		if((rootNode.data_ptrs[0] = setUpDirBlock(bs)) < 0){
@@ -57,7 +64,7 @@ int allocateInodeTableInBS(const blockstore_t* bs){
         }
 
         //write root inode to the blockstore
-		if(write_to_back_store(rootNode,8,48)){
+        if(block_store_write(bs, 8, &rootNode, 48, 0) == 48){
 			return 1;
 		}
 		return -11;
@@ -98,11 +105,16 @@ int allocateInodeTableInBS(const blockstore_t* bs){
 /// \param fname the file to load
 /// \return An F15FS object ready to use, NULL on error
 ///
-F15FS_t *fs_mount(const char *const fname);
+F15FS_t *fs_mount(const char *const fname){
+	F15FS_t * hey = NULL;
+	return hey;
+}
 
 /// Unmounts, closes, and destructs the given object,
 ///  saving all unwritten contents (if any) to file
 /// \param fs The F15FS file
 /// \return 0 on success, < 0 on error
 ///
-int fs_unmount(F15FS_t *fs);
+int fs_unmount(F15FS_t *fs){
+	return 0;
+}

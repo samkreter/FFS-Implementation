@@ -56,18 +56,19 @@ typedef struct dir_rec {
 //for dir block data/////////////////
 //the entry that holds the filename and inode ptr, could be a directory
 typedef struct {
-    char* filename[FNAME_MAX+1];
+    char filename[FNAME_MAX+1];
     inode_ptr_t inode;
-}dir_entry_t;
+}dir_block_entry_t;
 
 //metadata for the directory itsself
 typedef struct {
-    char filler[44];
+    uint32_t size;
+    char filler[40];
 } dir_meta_t;
 //the actuall entry put onto the block itself
 typedef struct {
     dir_meta_t metaData;
-    dir_entry_t entries[DIR_REC_MAX];
+    dir_block_entry_t entries[DIR_REC_MAX];
 } dir_block_t;
 //////////////////////////////////////
 
@@ -77,6 +78,10 @@ typedef struct {
 /// \return Error code, 0 for success, < 0 for error
 ///
 int fs_format(const char *const fname);
+
+
+block_ptr_t setUpDirBlock(block_store_t* bs);
+int allocateInodeTableInBS(block_store_t* bs);
 
 
 ///
