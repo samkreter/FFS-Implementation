@@ -7,19 +7,37 @@ int fs_format(const char *const fname){
 	if(fname){
 		block_store_t* bs = block_store_create();
 		if(bs){
-			allocateInodeTableInBS(bs);
+			if(allocateInodeTableInBS(bs) >= 0){
+                //write the block store to the file
+                block_store_link(bs, fname);
+                return 1;
+            }
+
 		}
-		return -1;
 	}
 	return -1;
 }
 
 
-int allocateInodeTableInBS(blockstore_t* bs){
-	if(bs){
+dir_ptr_t setUpDirBlock(const blockstore_t* bs){
 
+    dir_block_t newDir;
+    newDir.meteData.size = 0;
+    dir_ptr_t dirBlockPos;
 
+    if(dirBlockPos = block_store_allocate(bs)){
+        if(write_to_back_store(newDir,dirBlockPos,1024)){
+            return dirBlockPos;
+        }
+    }
+    return -1;
+}
+
+int allocateInodeTableInBS(const blockstore_t* bs){
+
+    if(bs){
 		size_t i = 0;
+        //allocate the room for the inode table
 		for(i=8; i<41; i++){
 			if(!block_store_request(bs,i)){
 				return -1;
@@ -27,24 +45,30 @@ int allocateInodeTableInBS(blockstore_t* bs){
 		}
 
 		iNode_t rootNode;
+        //set root filename as '/'
 		rootNode.fname = "/";
-		//allocate the root directory node
-		rootNode.data_ptrs[0] = block_store_allocate(bs);
 
-		rootDir
-		
+        //set the file type to a directory
+        rootNode.meteData.filetype = DIRECTORY;
+
+		//allocate the root directory node and check it worked
+		if((rootNode.data_ptrs[0] = setUpDirBlock(bs)) < 0){
+            return -1;
+        }
+
+        //write root inode to the blockstore
 		if(write_to_back_store(rootNode,8,48)){
 			return 1;
 		}
 		return -11;
-		
+
 	}
 	return -1;
 }
 
 // iNode_t* createInodeTable(block_store_t* bs){
 // 	iNode_t* iNodeTable = malloc(sizeof(iNodeTable_t)*256);
-	
+
 // 	if(iNodeTable){
 // 		iNodeTable[0].fname = "/";
 // 		iNodeTable[0].data_ptrs[0] = 8;
@@ -64,7 +88,7 @@ int allocateInodeTableInBS(blockstore_t* bs){
 // 		// 	}
 // 		// }
 
-		
+
 // 	}
 // 	return NULL;
 // }
