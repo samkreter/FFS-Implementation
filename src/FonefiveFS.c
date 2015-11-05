@@ -4,7 +4,8 @@
 
 
 int fs_format(const char *const fname){
-	if(fname){
+	
+	if(fname && fname != NULL && strcmp(fname,"") != 0){
 		printf("GOt into fs_format\n");
 		block_store_t* bs = block_store_create();
 		if(bs){
