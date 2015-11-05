@@ -35,8 +35,8 @@ typedef struct iNodeTable {
 
 //set up the file system structure
 typedef struct F15FS {
-	block_store_t *block_store;
-	iNode_t* inodeTable;
+	block_store_t *bs;
+	iNode_t inodeTable[256];
 } F15FS_t;
 
 // It's a directory entry. Won't really be used internally
@@ -83,6 +83,8 @@ int fs_format(const char *const fname);
 block_ptr_t setUpDirBlock(block_store_t* bs);
 int allocateInodeTableInBS(block_store_t* bs);
 
+
+int getiNodeTableFromBS(F15FS_t* fs);
 
 ///
 /// Mounts the specified file and returns an F15FS object

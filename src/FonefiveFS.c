@@ -101,15 +101,50 @@ int allocateInodeTableInBS(block_store_t* bs){
 // 	return NULL;
 // }
 
+
+int getiNodeTableFromBS(F15FS_t* fs){
+	if(fs){
+		size_t i = 8;
+		uint8_t buffer[1024];
+		int startingPos = 0;
+		for(i = 8; i < 41; i++){
+			startingPos = (i-8)*8;
+			if(block_store_read(fs->bs,i,&buffer,1024,0) == 1024){
+				if(memcpy(&(fs->inodeTable[startingPos]),&buffer,1024) == NULL){
+					return 0;
+				}
+			}
+			else{
+				return 0;
+			}
+		}
+		return 1;
+	}
+	return 0;
+}
+
 ///
 /// Mounts the specified file and returns an F15FS object
 /// \param fname the file to load
 /// \return An F15FS object ready to use, NULL on error
 ///
 F15FS_t *fs_mount(const char *const fname){
-	F15FS_t * hey = NULL;
-	return hey;
+	if(fname && fname != NULL && strcmp(fname,"") != 0){
+		block_store_t* bs;
+		F15FS_t* fs = malloc(sizeof(F15FS_t));
+		if(fs){
+			if((bs = block_store_import(fname)) != NULL){
+				fs->bs = bs;
+				if(getiNodeTableFromBS(fs)){
+					return fs;
+				}
+			}
+		}
+	}
+	return NULL;
 }
+
+
 
 /// Unmounts, closes, and destructs the given object,
 ///  saving all unwritten contents (if any) to file
