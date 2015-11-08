@@ -24,7 +24,7 @@ typedef uint32_t block_ptr_t;
 
 typedef struct metaData{
     ftype_t filetype;
-	char placeholder[47];
+	char placeholder[43];
 } inode_meta_data_t;
 
 typedef struct iNodeTable {

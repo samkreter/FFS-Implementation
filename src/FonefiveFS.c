@@ -102,14 +102,15 @@ int allocateInodeTableInBS(block_store_t* bs){
 // }
 
 int flushiNodeTableToBS(F15FS_t* fs){
-	if(fs){
+	if(fs != NULL && fs->bs != NULL){
 		printf("Got params fint\n");
 		size_t i = 8;
-		uint8_t buffer[1024];
+		//fs->bs = block_store_import("TESTFILE.f15fs");
+		char buffer[1024];
 		int startingPos = 0;
 		for(i = 8; i < 41; i++){
 			startingPos = (i-8)*8;
-			if(memcpy(&buffer,&(fs->inodeTable[startingPos]),1024) != NULL){
+			if(memcpy(&buffer,(fs->inodeTable+startingPos),1024) != NULL){
 				if(block_store_write(fs->bs,i,&buffer,1024,0) != 1024){
 					return 0;
 				}
@@ -118,6 +119,7 @@ int flushiNodeTableToBS(F15FS_t* fs){
 				return 0;
 			}
 		}
+		printf("got through fint\n");
 		return 1;
 	}
 	return 0;
@@ -126,13 +128,14 @@ int flushiNodeTableToBS(F15FS_t* fs){
 
 int getiNodeTableFromBS(F15FS_t* fs){
 	if(fs){
+		printf("gettting n table out\n");
 		size_t i = 8;
 		uint8_t buffer[1024];
-		//int startingPos = 0;
-		for(i = 8; i < 41; i++){
-			//startingPos = (i-8)*8;
+		int startingPos = 0;
+		for(i = 8; i < 40; i++){
+			startingPos = (i-8)*8;
 			if(block_store_read(fs->bs,i,&buffer,1024,0) == 1024){
-				if(memcpy(&(fs->inodeTable),&buffer,1024) == NULL){
+				if(memcpy((fs->inodeTable+startingPos),&buffer,1024) == NULL){
 					return 0;
 				}
 			}
@@ -152,11 +155,9 @@ int getiNodeTableFromBS(F15FS_t* fs){
 ///
 F15FS_t *fs_mount(const char *const fname){
 	if(fname && fname != NULL && strcmp(fname,"") != 0){
-		block_store_t* bs;
-		F15FS_t* fs = malloc(sizeof(F15FS_t));
+		F15FS_t* fs = (F15FS_t*)malloc(sizeof(F15FS_t));
 		if(fs){
-			if((bs = block_store_import(fname)) != NULL){
-				fs->bs = bs;
+			if((fs->bs = block_store_import(fname)) != NULL){
 				if(getiNodeTableFromBS(fs)){
 					return fs;
 				}
