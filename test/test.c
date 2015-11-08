@@ -43,11 +43,11 @@ int main() {
 
     puts("Running autotests, sit back and relax, it'll be awhile...");
 
-    //basic_tests_a();
+    basic_tests_a();
 
     //puts("A tests passed...");
 
-    basic_tests_b();
+    //basic_tests_b();
 
     //puts("B tests passed...");
 
@@ -92,21 +92,6 @@ void basic_tests_a() {
 
 void basic_tests_b() {
 
-    assert(fs_format("TESTFILE.f15fs") == 0);
-
-    // MOUNT 1
-    F15FS_t *fs = fs_mount("TESTFILE.f15fs");
-    assert(fs);
-
-    fs->inodeTable[1].fname[0] = 't';
-
-    printf("%c::::first time\n",fs->inodeTable[1].fname[0]);
-
-    assert(fs_unmount(fs) == 0);
-
-    fs = fs_mount("TESTFILE.f15fs");
-
-    printf("%c::::second  time\n",fs->inodeTable[1].fname[0]);
 }
 
 

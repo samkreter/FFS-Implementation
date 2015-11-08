@@ -22,12 +22,14 @@ typedef enum {
 typedef uint8_t inode_ptr_t;
 typedef uint32_t block_ptr_t;
 
+//metadata for the inodes
 typedef struct metaData{
     ftype_t filetype;
 	char placeholder[43];
 } inode_meta_data_t;
 
-typedef struct iNodeTable {
+//the individuale inodes 
+typedef struct iNode {
 	char fname[FNAME_MAX+1];
 	inode_meta_data_t metaData;
 	uint32_t data_ptrs[8];
