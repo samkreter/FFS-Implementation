@@ -45,11 +45,11 @@ int main() {
 
     basic_tests_a();
 
-    //puts("A tests passed...");
+    puts("A tests passed...");
 
-    //basic_tests_b();
+    basic_tests_b();
 
-    //puts("B tests passed...");
+    puts("B tests passed...");
 
     //basic_tests_c();
 
@@ -91,7 +91,32 @@ void basic_tests_a() {
 
 
 void basic_tests_b() {
+    //test formating
+    assert(fs_format("TESTFILE.f15fs") == 0);
 
+    // test mounting
+    F15FS_t *fs = fs_mount("TESTFILE.f15fs");
+    assert(fs);
+
+    //make sure everthing saves to the block store correctly
+    fs->inodeTable[1].fname[0] = 't';
+    char testMatch = fs->inodeTable[1].fname[0];
+
+    printf("%c::::first time\n",fs->inodeTable[1].fname[0]);
+
+    //unmount to save to file
+    assert(fs_unmount(fs) == 0);
+    
+    //change the local var
+    fs->inodeTable[1].fname[0] = 'y';
+    printf("%c::::Changing local var\n",fs->inodeTable[1].fname[0]);
+    
+    //mount again
+    fs = fs_mount("TESTFILE.f15fs");
+    printf("%c::::after remount\n",fs->inodeTable[1].fname[0]);
+
+    //make sure what goes in comes out 
+    assert(testMatch == fs->inodeTable[1].fname[0]);
 }
 
 
