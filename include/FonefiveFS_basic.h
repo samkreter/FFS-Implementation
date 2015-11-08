@@ -28,7 +28,7 @@ typedef struct metaData{
 	char placeholder[43];
 } inode_meta_data_t;
 
-//the individuale inodes 
+//the individuale inodes
 typedef struct iNode {
 	char fname[FNAME_MAX+1];
 	inode_meta_data_t metaData;
@@ -90,7 +90,7 @@ block_ptr_t setUpDirBlock(block_store_t* bs);
 
 ///
 /// allocates room for the inodetable in the bs passed in
-/// \param bs The block store to be allocated 
+/// \param bs The block store to be allocated
 /// \return <=0 for errors otherwiase success
 ///
 int allocateInodeTableInBS(block_store_t* bs);

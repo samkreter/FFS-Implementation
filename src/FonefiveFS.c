@@ -9,14 +9,14 @@ int fs_format(const char *const fname){
 		//create the blockstore
 		block_store_t* bs = block_store_create();
 		if(bs){
-			//use util funt o allocate all the spaces needed in it. 
+			//use util funt o allocate all the spaces needed in it.
 			//really just to make sure we set the front blocks to used
 			//in the bitmap for the inode table so they can't be allocated as data blcoks
 			if(allocateInodeTableInBS(bs) >= 0){
-                
+
                 //write the block store to the file
                 block_store_link(bs, fname);
-               
+
                 return 0;
             }
 
@@ -37,23 +37,23 @@ block_ptr_t setUpDirBlock(block_store_t* bs){
 
 	    //declare it pos
 	    block_ptr_t dirBlockPos;
-	    
+
 	    //get the next free block in the blockstore
 	    if((dirBlockPos = block_store_allocate(bs))){
 	    	//write the data of the dir to the block and get teh pos to put in the inode table
 	    	if(block_store_write(bs, dirBlockPos, &newDir, 1024, 0) == 1024){
 	    		return dirBlockPos;
 	    	}
-	     
+
 	    }
 	}
     return -1;
 }
 
 int allocateInodeTableInBS(block_store_t* bs){
-	//param check, 
+	//param check,
     if(bs){
-		
+
 		//declare i because c just isn't as cool as c++ with declaring in the loop
 		size_t i = 0;
         //allocate the room for the inode table
@@ -89,11 +89,11 @@ int allocateInodeTableInBS(block_store_t* bs){
 
 
 int flushiNodeTableToBS(F15FS_t* fs){
-	//I'm really lovin all these param checks 
+	//I'm really lovin all these param checks
 	if(fs && fs->bs != NULL){
 		//I think size_t is some cool stuff, you know causes it looks special
 		size_t i = 8;
-		//another kilobyte of fun 
+		//another kilobyte of fun
 		char buffer[1024];
 		//index mapping var to go from i to the correct index of the inodetable
 		int startingPos = 0;
@@ -103,7 +103,7 @@ int flushiNodeTableToBS(F15FS_t* fs){
 			//take the memory to a buffer before we write to the table in casue of
 			// some funny bussiness in the blockstore
 			if(memcpy(&buffer,(fs->inodeTable+startingPos),1024) != NULL){
-				//write our stuff to the block store 
+				//write our stuff to the block store
 				if(block_store_write(fs->bs,i,&buffer,1024,0) != 1024){
 					return 0;
 				}
@@ -119,7 +119,7 @@ int flushiNodeTableToBS(F15FS_t* fs){
 }
 
 int getiNodeTableFromBS(F15FS_t* fs){
-	//usual param checks 
+	//usual param checks
 	if(fs){
 		//starting at the 8th block in the blockstore
 		size_t i = 8;
@@ -181,8 +181,70 @@ int fs_unmount(F15FS_t *fs){
 				free(fs);
 				return 0;
 			}
-			
+
 		}
 	}
 	return -1;
 }
+
+
+
+int findEmptyInode(F15FS *const fs){
+    if(fs){
+
+    }
+
+    return -1;
+}
+
+///
+/// Creates a new file in the given F15FS object
+/// \param fs the F15FS file
+/// \param fname the file to create
+/// \param ftype the type of file to create
+/// \return 0 on success, < 0 on error
+///
+int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t ftype){
+
+}
+
+///
+/// Returns the contents of a directory
+/// \param fs the F15FS file
+/// \param fname the file to query
+/// \param records the record object to fill
+/// \return 0 on success, < 0 on error
+///
+int fs_get_dir(const F15FS_t *const fs, const char *const fname, dir_rec_t *const records);
+
+///
+/// Writes nbytes from the given buffer to the specified file and offset
+/// Increments the read/write position of the descriptor by the ammount written
+/// \param fs the F15FS file
+/// \param fname the name of the file
+/// \param data the buffer to read from
+/// \param nbyte the number of bytes to write
+/// \param offset the offset in the file to begin writing to
+/// \return ammount written, < 0 on error
+///
+ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *data, size_t nbyte, size_t offset);
+
+///
+/// Reads nbytes from the specified file and offset to the given data pointer
+/// Increments the read/write position of the descriptor by the ammount read
+/// \param fs the F15FS file
+/// \param fname the name of the file to read from
+/// \param data the buffer to write to
+/// \param nbyte the number of bytes to read
+/// \param offset the offset in the file to begin reading from
+/// \return ammount read, < 0 on error
+///
+ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, size_t nbyte, size_t offset);
+
+///
+/// Removes a file. (Note: Directories cannot be deleted unless empty)
+/// This closes any open descriptors to this file
+/// \param fs the F15FS file
+/// \param fname the file to remove
+/// \return 0 on sucess, < 0 on error
+///
