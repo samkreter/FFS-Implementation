@@ -4,17 +4,19 @@
 
 
 int fs_format(const char *const fname){
-	
+	//param check
 	if(fname && fname != NULL && strcmp(fname,"") != 0){
-		printf("GOt into fs_format\n");
+		//create the blockstore
 		block_store_t* bs = block_store_create();
 		if(bs){
-			printf("Block Store Created good\n");
+			//use util funt o allocate all the spaces needed in it. 
+			//really just to make sure we set the front blocks to used
+			//in the bitmap for the inode table so they can't be allocated as data blcoks
 			if(allocateInodeTableInBS(bs) >= 0){
-				printf("got through allocation\n");
+                
                 //write the block store to the file
                 block_store_link(bs, fname);
-                printf("got linked up\n");
+               
                 return 0;
             }
 
@@ -25,25 +27,34 @@ int fs_format(const char *const fname){
 
 
 block_ptr_t setUpDirBlock(block_store_t* bs){
+	//param check
+	if(bs){
+		//declare the new dir
+	    dir_block_t newDir;
 
-    dir_block_t newDir;
-    newDir.metaData.size = 0;
-    block_ptr_t dirBlockPos;
-    printf("In setupdirblock\n");
-    if((dirBlockPos = block_store_allocate(bs))){
-    	printf("alloction worked in sudb\n");
-    	if(block_store_write(bs, dirBlockPos, &newDir, 1024, 0) == 1024){
-    		printf("all good in the sudb with \n");
-    		return dirBlockPos;
-    	}
-     
-    }
+	    //set the size of its contents to zero
+	    newDir.metaData.size = 0;
+
+	    //declare it pos
+	    block_ptr_t dirBlockPos;
+	    
+	    //get the next free block in the blockstore
+	    if((dirBlockPos = block_store_allocate(bs))){
+	    	//write the data of the dir to the block and get teh pos to put in the inode table
+	    	if(block_store_write(bs, dirBlockPos, &newDir, 1024, 0) == 1024){
+	    		return dirBlockPos;
+	    	}
+	     
+	    }
+	}
     return -1;
 }
 
 int allocateInodeTableInBS(block_store_t* bs){
-
+	//param check, 
     if(bs){
+		
+		//declare i because c just isn't as cool as c++ with declaring in the loop
 		size_t i = 0;
         //allocate the room for the inode table
 		for(i=8; i<41; i++){
@@ -52,7 +63,9 @@ int allocateInodeTableInBS(block_store_t* bs){
 			}
 		}
 
+		//create a root inode
 		iNode_t rootNode;
+
         //set root filename as '/'
 		rootNode.fname[0] = '/';
 
@@ -74,43 +87,23 @@ int allocateInodeTableInBS(block_store_t* bs){
 	return -1;
 }
 
-// iNode_t* createInodeTable(block_store_t* bs){
-// 	iNode_t* iNodeTable = malloc(sizeof(iNodeTable_t)*256);
-
-// 	if(iNodeTable){
-// 		iNodeTable[0].fname = "/";
-// 		iNodeTable[0].data_ptrs[0] = 8;
-// 		return iNodeTable;
-
-// 		// for(i = 8; i < 41; i++){
-// 		// 	if(block_store_request(bs,i)){
-// 		// 		iNode_t buffer[8];
-// 		// 		int startingPos = (i-8)*8;
-// 		// 		memcpy(buffer,iNodeTable[startingPos],sizeof(iNode_t)*8);
-// 		// 		if(!write_to_back_store(buffer,i)){
-// 		// 			printf("Failed to write to backing store for inode Creatation")
-// 		// 		}
-// 		// 	}else{
-// 		// 		printf("Could not allocate the needed inodeTable\n");
-// 		// 		return NULL;
-// 		// 	}
-// 		// }
-
-
-// 	}
-// 	return NULL;
-// }
 
 int flushiNodeTableToBS(F15FS_t* fs){
-	if(fs != NULL && fs->bs != NULL){
-		printf("Got params fint\n");
+	//I'm really lovin all these param checks 
+	if(fs && fs->bs != NULL){
+		//I think size_t is some cool stuff, you know causes it looks special
 		size_t i = 8;
-		//fs->bs = block_store_import("TESTFILE.f15fs");
+		//another kilobyte of fun 
 		char buffer[1024];
+		//index mapping var to go from i to the correct index of the inodetable
 		int startingPos = 0;
 		for(i = 8; i < 41; i++){
+			//increment the mapping var
 			startingPos = (i-8)*8;
+			//take the memory to a buffer before we write to the table in casue of
+			// some funny bussiness in the blockstore
 			if(memcpy(&buffer,(fs->inodeTable+startingPos),1024) != NULL){
+				//write our stuff to the block store 
 				if(block_store_write(fs->bs,i,&buffer,1024,0) != 1024){
 					return 0;
 				}
@@ -119,7 +112,6 @@ int flushiNodeTableToBS(F15FS_t* fs){
 				return 0;
 			}
 		}
-		printf("got through fint\n");
 		return 1;
 	}
 	return 0;
@@ -127,14 +119,20 @@ int flushiNodeTableToBS(F15FS_t* fs){
 }
 
 int getiNodeTableFromBS(F15FS_t* fs){
+	//usual param checks 
 	if(fs){
-		printf("gettting n table out\n");
+		//starting at the 8th block in the blockstore
 		size_t i = 8;
+		//set up the buffer to be 1 kilobyte
 		uint8_t buffer[1024];
+		//create a maping var to get the index of the inodetable
 		int startingPos = 0;
 		for(i = 8; i < 40; i++){
+			//increment the index mapper
 			startingPos = (i-8)*8;
+			//reak a block from the bs
 			if(block_store_read(fs->bs,i,&buffer,1024,0) == 1024){
+				//put the contents into the fs inode table
 				if(memcpy((fs->inodeTable+startingPos),&buffer,1024) == NULL){
 					return 0;
 				}
@@ -148,16 +146,16 @@ int getiNodeTableFromBS(F15FS_t* fs){
 	return 0;
 }
 
-///
-/// Mounts the specified file and returns an F15FS object
-/// \param fname the file to load
-/// \return An F15FS object ready to use, NULL on error
-///
+
 F15FS_t *fs_mount(const char *const fname){
-	if(fname && fname != NULL && strcmp(fname,"") != 0){
+	//check params, having to check for weird things
+	if(fname && strcmp(fname,"") != 0){
+		//create the filesytem struct
 		F15FS_t* fs = (F15FS_t*)malloc(sizeof(F15FS_t));
 		if(fs){
+			//import the blockstore from the file
 			if((fs->bs = block_store_import(fname)) != NULL){
+				//pull the inode table into memory
 				if(getiNodeTableFromBS(fs)){
 					return fs;
 				}
@@ -169,21 +167,17 @@ F15FS_t *fs_mount(const char *const fname){
 
 
 
-/// Unmounts, closes, and destructs the given object,
-///  saving all unwritten contents (if any) to file
-/// \param fs The F15FS file
-/// \return 0 on success, < 0 on error
-///
 int fs_unmount(F15FS_t *fs){
-	printf("got to unmount\n");
+	//check params
 	if(fs && fs->inodeTable && fs->bs){
-		printf("Got into file checking\n");
+		//flush the inode table into the blockstore
 		if(flushiNodeTableToBS(fs)){
-			printf("Good after flushinodetable\n");
+			//flush the blockstore to the file
 			block_store_flush(fs->bs);
 			if(block_store_errno() == BS_OK){
-				printf("good in the flushing\n");
+				//free the blockstore
 				block_store_destroy(fs->bs,BS_NO_FLUSH);
+				//free the file system pointer
 				free(fs);
 				return 0;
 			}

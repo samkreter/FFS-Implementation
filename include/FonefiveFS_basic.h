@@ -79,12 +79,32 @@ typedef struct {
 ///
 int fs_format(const char *const fname);
 
-
+///
+/// sets up a block as a new dir
+/// \param bs The blockstore to set it up on
+/// \return the pos of the new dir, <0 for erros
+///
 block_ptr_t setUpDirBlock(block_store_t* bs);
+
+///
+/// allocates room for the inodetable in the bs passed in
+/// \param bs The block store to be allocated 
+/// \return <=0 for errors otherwiase success
+///
 int allocateInodeTableInBS(block_store_t* bs);
 
-
+///
+/// pulls the inode table from bs into memory
+/// \param fs the filesystem to pull the inodetable into
+/// \return >0 for success otherwise erros
+///
 int getiNodeTableFromBS(F15FS_t* fs);
+
+///
+/// flushed the inodetable to the blocksotre of the fs
+/// \param fs the filesytsme to flush the inodetable from
+/// \return >0 for success otherwise erros
+///
 int flushiNodeTableToBS(F15FS_t* fs);
 
 ///
