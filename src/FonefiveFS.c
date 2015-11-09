@@ -202,11 +202,19 @@ int findEmptyInode(F15FS *const fs){
     return -1;
 }
 
+inode_ptr_t getInodeFromPath(F15FS_t *const fs, char* fname){
+    if(fs && fname && strcmp(fname,"") != 0){
+        char** pathList = parseFilePath(fname);
+        int listSize = (int)pathList[0]
+        while
+    }
+}
+
 char** parseFilePath(char* filePath){
     if(filePath && strcmp(filePath,"") != 0){
         char* temp = filePath;
         int count = 0;
-        int i = 0;
+        int i = 1;
         const char delim[2] = "/";
         char* token;
 
@@ -220,11 +228,28 @@ char** parseFilePath(char* filePath){
         if(count == 0){
             return &filePath;
         }else{
-            char** pathList = (char**)malloc(sizeof(char*)*count);
+            char** pathList = (char**)malloc(sizeof(char*)*(count+1));
+            if(pathList == NULL){
+                return NULL;
+            }
+
+            pathList[0] = malloc(sizeof(char));
+            if(pathList[0] == NULL){
+                return NULL;
+            }
+
+            pathList[0] = count;
+
             token = strtok(filePath,delim);
 
             while(token != NULL){
-                pathList[i] = token;
+
+                pathList[i] = (char*)malloc(strlen(token));
+                if(pathList[i] == NULL){
+                    return NULL;
+                }
+                strcpy(pathList[i],token);
+
                 token = strtok(NULL,delim);
                 i++;
             }
