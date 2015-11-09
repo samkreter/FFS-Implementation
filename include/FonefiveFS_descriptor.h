@@ -115,7 +115,7 @@ int fs_seek_file(F15FS_t *const fs, const int fd, const off_t offset, const seek
 /// \param offset the offset in the file to begin writing to
 /// \return ammount written, < 0 on error
 ///
-ssize_t fs_write_file(F15FS_t *const fs, const int fd, const void *data, size_t nbyte, size_t offset);
+ssize_t fs_write_file(F15FS_t *const fs, const int fd, const void *data, size_t nbyte);
 
 ///
 /// Reads nbytes from the specified file and offset to the given data pointer
@@ -127,7 +127,7 @@ ssize_t fs_write_file(F15FS_t *const fs, const int fd, const void *data, size_t 
 /// \param offset the offset in the file to begin reading from
 /// \return ammount read, < 0 on error
 ///
-ssize_t fs_read_file(F15FS_t *const fs, const int fd, void *data, size_t nbyte, size_t offset);
+ssize_t fs_read_file(F15FS_t *const fs, const int fd, void *data, size_t nbyte);
 
 ///
 /// Removes a file. (Note: Directories cannot be deleted unless empty)
