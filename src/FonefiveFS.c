@@ -1,5 +1,6 @@
 #include "../include/FonefiveFS_basic.h"
 
+#define BLOCK_SIZE 1024
 
 
 
@@ -41,7 +42,7 @@ block_ptr_t setUpDirBlock(block_store_t* bs){
 	    //get the next free block in the blockstore
 	    if((dirBlockPos = block_store_allocate(bs))){
 	    	//write the data of the dir to the block and get teh pos to put in the inode table
-	    	if(block_store_write(bs, dirBlockPos, &newDir, 1024, 0) == 1024){
+	    	if(block_store_write(bs, dirBlockPos, &newDir, BLOCK_SIZE, 0) == BLOCK_SIZE){
 	    		return dirBlockPos;
 	    	}
 
@@ -95,7 +96,7 @@ int flushiNodeTableToBS(F15FS_t* fs){
 		//I think size_t is some cool stuff, you know causes it looks special
 		size_t i = 8;
 		//another kilobyte of fun
-		char buffer[1024];
+		char buffer[BLOCK_SIZE];
 		//index mapping var to go from i to the correct index of the inodetable
 		int startingPos = 0;
 		for(i = 8; i < 41; i++){
@@ -103,9 +104,9 @@ int flushiNodeTableToBS(F15FS_t* fs){
 			startingPos = (i-8)*8;
 			//take the memory to a buffer before we write to the table in casue of
 			// some funny bussiness in the blockstore
-			if(memcpy(&buffer,(fs->inodeTable+startingPos),1024) != NULL){
+			if(memcpy(&buffer,(fs->inodeTable+startingPos),BLOCK_SIZE) != NULL){
 				//write our stuff to the block store
-				if(block_store_write(fs->bs,i,&buffer,1024,0) != 1024){
+				if(block_store_write(fs->bs,i,&buffer,BLOCK_SIZE,0) != BLOCK_SIZE){
 					return 0;
 				}
 			}
@@ -125,16 +126,16 @@ int getiNodeTableFromBS(F15FS_t* fs){
 		//starting at the 8th block in the blockstore
 		size_t i = 8;
 		//set up the buffer to be 1 kilobyte
-		uint8_t buffer[1024];
+		uint8_t buffer[BLOCK_SIZE];
 		//create a maping var to get the index of the inodetable
 		int startingPos = 0;
 		for(i = 8; i < 40; i++){
 			//increment the index mapper
 			startingPos = (i-8)*8;
 			//reak a block from the bs
-			if(block_store_read(fs->bs,i,&buffer,1024,0) == 1024){
+			if(block_store_read(fs->bs,i,&buffer,BLOCK_SIZE,0) == BLOCK_SIZE){
 				//put the contents into the fs inode table
-				if(memcpy((fs->inodeTable+startingPos),&buffer,1024) == NULL){
+				if(memcpy((fs->inodeTable+startingPos),&buffer,BLOCK_SIZE) == NULL){
 					return 0;
 				}
 			}
@@ -202,26 +203,40 @@ int findEmptyInode(F15FS *const fs){
     return -1;
 }
 
-
+//0 for not there -1 for actual error
 int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t* inodeIndex){
     dir_block_t dir
-    if(block_store_read(fs->bs,i,&dir,1024,0) == 1024){
+    if(block_store_read(fs->bs,i,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
         int i = 0;
         for(i = 0; i < dir.metadata.size; i++){
-            if(dir.)
+            if(strcmp(dir.entries[i].filename,fname) == 0){
+                *inodeIndex = dir.entries[i].inode;
+                return 1;
+            }
         }
-
-        return -1;
+        return 0;
     }
+    return -1;
+}
+
+int freeFilePath(char** pathList){
+    int listSize = *pathList[0] - '0';
+    int i = 0;
+    for(i = 0; i < listSize + 1; i++){
+        free(pathList[i]);
+    }
+    free(pathList);
 }
 
 inode_ptr_t getInodeFromPath(F15FS_t *const fs, char* fname){
     if(fs && fname && strcmp(fname,"") != 0){
         char** pathList = parseFilePath(fname);
-        int listSize = (*pathList[0]) - '0';
+        int listSize = *pathList[0] - '0';
         int i = 1;
 
         fs.inodetable[0].data_ptrs[0]
+
+        freeFilePath(pathList);
     }
 }
 
