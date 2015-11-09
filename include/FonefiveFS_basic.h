@@ -1,3 +1,6 @@
+#ifndef FONEFIVE_H__
+#define FONEFIVE_H__
+
 #include <sys/types.h>
 #include <stdint.h>
 #include <time.h>
@@ -28,7 +31,7 @@ typedef struct {
 // It's a directory record, used to report directory contents to the user
 // Won't really be used internally
 typedef struct dir_rec {
-    int total; // total valid entries
+    unsigned total; // total valid entries
     dir_entry_t contents[DIR_REC_MAX];
 } dir_rec_t;
 
@@ -73,7 +76,6 @@ int fs_get_dir(const F15FS_t *const fs, const char *const fname, dir_rec_t *cons
 
 ///
 /// Writes nbytes from the given buffer to the specified file and offset
-/// Increments the read/write position of the descriptor by the ammount written
 /// \param fs the F15FS file
 /// \param fname the name of the file
 /// \param data the buffer to read from
@@ -85,7 +87,6 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
 
 ///
 /// Reads nbytes from the specified file and offset to the given data pointer
-/// Increments the read/write position of the descriptor by the ammount read
 /// \param fs the F15FS file
 /// \param fname the name of the file to read from
 /// \param data the buffer to write to
@@ -97,7 +98,6 @@ ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, siz
 
 ///
 /// Removes a file. (Note: Directories cannot be deleted unless empty)
-/// This closes any open descriptors to this file
 /// \param fs the F15FS file
 /// \param fname the file to remove
 /// \return 0 on sucess, < 0 on error
@@ -106,10 +106,11 @@ int fs_remove_file(F15FS_t *const fs, const char *const fname);
 
 ///
 /// Moves the file from the source name to the destination name
-/// Note: This does not invalidate any file descriptors
 /// \param fs the F15FS file
 /// \param fname_src the file to move
 /// \param fname_dst the file's new location
 /// \return 0 on success, < 0 on error
 ///
 int fs_move_file(F15FS_t *const fs, const char *const fname_src, const char *const fname_dst);
+
+#endif

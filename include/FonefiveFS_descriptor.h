@@ -1,3 +1,6 @@
+#ifndef FONEFIVE_H__
+#define FONEFIVE_H__
+
 #include <sys/types.h>
 #include <stdint.h>
 #include <time.h>
@@ -33,7 +36,7 @@ typedef {
 // It's a directory record, used to report directory contents to the user
 // Won't really be used internally
 typedef struct dir_rec {
-    int total; // total valid entries
+    unsigned total; // total valid entries
     dir_entry_t contents[DIR_REC_MAX];
 } dir_rec_t;
 
@@ -144,3 +147,5 @@ int fs_remove_file(F15FS_t *const fs, const char *const fname);
 /// \return 0 on success, < 0 on error
 ///
 int fs_move_file(F15FS_t *const fs, const char *const fname_src, const char *const fname_dst);
+
+#endif

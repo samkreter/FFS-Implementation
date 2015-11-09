@@ -5,7 +5,7 @@ set(CMAKE_OSX_SYSROOT "/") # Mac users will thank me
 #set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_COLOR_MAKEFILE ON)
 
-set(CMAKE_C_FLAGS "-std=c99 -Wall -Werror -g -O0")
+set(CMAKE_C_FLAGS "-std=gnu99 -Wall -Werror -g -O0")
 
 find_library(blockstore_lib block_store)
 
