@@ -71,6 +71,7 @@ int allocateInodeTableInBS(block_store_t* bs){
 
         //set the file type to a directory
         rootNode.metaData.filetype = DIRECTORY;
+        rootNode.metadata.inUse = 1;
 
 		//allocate the root directory node and check it worked
 		if((rootNode.data_ptrs[0] = setUpDirBlock(bs)) < 0){
@@ -191,10 +192,48 @@ int fs_unmount(F15FS_t *fs){
 
 int findEmptyInode(F15FS *const fs){
     if(fs){
-
+        int i = 0;
+        for(i = 0; i < 256; i++){
+            if(fs->inodeTable[i].metadata.inUse != 1){
+                return i;
+            }
+        }
     }
-
     return -1;
+}
+
+char** parseFilePath(char* filePath){
+    if(filePath && strcmp(filePath,"") != 0){
+        char* temp = filePath;
+        int count = 0;
+        int i = 0;
+        const char delim[2] = "/";
+        char* token;
+
+        while(*temp){
+            if(*temp == '/'){
+                count++;
+            }
+            temp++;
+        }
+
+        if(count == 0){
+            return &filePath;
+        }else{
+            char** pathList = (char**)malloc(sizeof(char*)*count);
+            token = strtok(filePath,delim);
+
+            while(token != NULL){
+                pathList[i] = token;
+                token = strtok(NULL,delim);
+                i++;
+            }
+
+            return pathList
+
+        }
+    }
+    return NULL;
 }
 
 ///
@@ -205,7 +244,23 @@ int findEmptyInode(F15FS *const fs){
 /// \return 0 on success, < 0 on error
 ///
 int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t ftype){
+    //param check
+    if(fs && fname && strcmp(fname,"") != 0 && ftype){
+        int emptyiNodeIndex = findEmptyInode(fs);
 
+        //set the use byte
+        fs->inodeTable[emptyiNodeIndex].metadata.inUse = 1;
+
+        //add the fname to the inode
+        strcpy(fs->inodeTable[emptyiNodeIndex].fname,fname)
+
+        if(ftype == DIRECTORY){
+            if((fs->inodeTable[emptyiNodeIndex].data_ptrs[0] = setUpDirBlock(fs->bs)) > 0){
+                return 1;
+            }
+        }
+    }
+    return -1;
 }
 
 ///
@@ -215,7 +270,9 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
 /// \param records the record object to fill
 /// \return 0 on success, < 0 on error
 ///
-int fs_get_dir(const F15FS_t *const fs, const char *const fname, dir_rec_t *const records);
+int fs_get_dir(const F15FS_t *const fs, const char *const fname, dir_rec_t *const records){
+
+}
 
 ///
 /// Writes nbytes from the given buffer to the specified file and offset

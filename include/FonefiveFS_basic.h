@@ -12,6 +12,7 @@ typedef enum {
     REGULAR = 0x01, DIRECTORY = 0x02
 } ftype_t;
 
+
 // They are what they sound like, the max filename (not counting terminator)
 // and the number of things a directory can contain
 // Have to be exposed in the header for the record structure, which is annoying
@@ -25,7 +26,9 @@ typedef uint32_t block_ptr_t;
 //metadata for the inodes
 typedef struct metaData{
     ftype_t filetype;
-	char placeholder[43];
+    //1 means
+    char inUse;
+	char placeholder[42];
 } inode_meta_data_t;
 
 //the individuale inodes
