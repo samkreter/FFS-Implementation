@@ -12,8 +12,6 @@ find_library(blockstore_lib block_store)
 #find_library(bitmap_lib bitmap)
 #find_library(dynarray_lib dyn_array)
 
-message(FATAL_ERROR "Copy your selected spec to include/${PROJECT_NAME}.h and delete this line!")
-
 add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}.c)
 target_link_libraries(${PROJECT_NAME} ${blockstore_lib}) # Add other libs if you need them
 set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
