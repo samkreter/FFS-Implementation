@@ -202,17 +202,33 @@ int findEmptyInode(F15FS *const fs){
     return -1;
 }
 
+
+int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t* inodeIndex){
+    dir_block_t dir
+    if(block_store_read(fs->bs,i,&dir,1024,0) == 1024){
+        int i = 0;
+        for(i = 0; i < dir.metadata.size; i++){
+            if(dir.)
+        }
+
+        return -1;
+    }
+}
+
 inode_ptr_t getInodeFromPath(F15FS_t *const fs, char* fname){
     if(fs && fname && strcmp(fname,"") != 0){
         char** pathList = parseFilePath(fname);
-        int listSize = (int)pathList[0]
-        while
+        int listSize = (*pathList[0]) - '0';
+        int i = 1;
+
+        fs.inodetable[0].data_ptrs[0]
     }
 }
 
 char** parseFilePath(char* filePath){
     if(filePath && strcmp(filePath,"") != 0){
         char* temp = filePath;
+        char** pathList;
         int count = 0;
         int i = 1;
         const char delim[2] = "/";
@@ -226,9 +242,20 @@ char** parseFilePath(char* filePath){
         }
 
         if(count == 0){
-            return &filePath;
+            //theres only a file or directory name so just add the count
+            //and whats in there to one
+            if((pathList = (char**)malloc(sizeof(char*)*2)) != NULL){
+                if((pathList[0] = (char*)malloc(sizeof(char))) != NULL){
+                    *pathList[0] = 1;
+                    pathList[1] = &filePath;
+                    return pathList;
+                }
+            }
+            return NULL;
         }else{
-            char** pathList = (char**)malloc(sizeof(char*)*(count+1));
+            //create string array with right size plus one to add the size in
+            pathList = (char**)malloc(sizeof(char*)*(count+1));
+
             if(pathList == NULL){
                 return NULL;
             }
@@ -238,7 +265,8 @@ char** parseFilePath(char* filePath){
                 return NULL;
             }
 
-            pathList[0] = count;
+            //put the length at the begging
+            *pathList[0] = count;
 
             token = strtok(filePath,delim);
 
