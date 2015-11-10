@@ -237,34 +237,57 @@ int getInodeFromPath(F15FS_t *const fs, char* fname, search_dir_t* searchOutPara
         int listSize = *pathList[0] - '0';
         int i = 1;
         //start it at the root node
-        inode_ptr_t tempInode = ROOT_INODE;
+        inode_ptr_t currInode = ROOT_INODE;
+        inode_ptr_t parentInode = ROOT_INODE;
         int result = 0;
 
         for(i = 1; i < listSize; i++){
-            result = searchDir(fs, pathList[1], fs.inodetable[tempInode].data_ptrs[0], &tempInode);
+            result = searchDir(fs, pathList[1], fs.inodetable[parentInode].data_ptrs[0], &currInode);
 
             if(result == 0){
-                if(result == 0){
+                //not found but at the end of list, populate with parent direct
+                //for creating a file in that spot
+                if((listSize - i) == 0){
                     searchOutParams->found = 0;
-                    searchOutParams->parentDir = fs.inodetable[0].data_ptrs[0];
+                    searchOutParams->parentDir = parentInode;
                     return 0;
                 }
-                else if(result == 1){
-                    searchOutParams->found = 1;
-                    searchOutParams->parentDir = fs.inodetable[0].data_ptrs[0];
-                    searchOutParams->inode = tempInode;
-                    return 1;
-                }
                 else{
-                    fprintf(stderr,"Something went wrong will searching for file");
+                    //bad path
+                    searchOutParams->found = 0;
                     return -1;
                 }
-             }
+
+
+            }
+            else if(result == 1){
+                if((listSize - i) != 0 && fs.inodeTable[currInode].metadata.filetype == DIRECTORY){
+                    parentInode = currInode;
+                    continue;
+                }
+                else if((listSize - i) == 0 && fs.inodeTable[currInode].metadata.filetype == DIRECTORY){
+                    //can't end it path with directory
+                    return -2;
+                }
+                else if((listSize - i) != 0 && fs.inodeTable[currInode].metadata.filetype == REGULAR){
+                    //can't have file not at end of path
+                    return -3;
+                }
+                else if((listSize - i) == 0 && fs.inodeTable[currInode].metadata.filetype == REGULAR){
+                    searchOutParams->found = 1;
+                    searchOutParams->parentDir = parentInode;
+                    searchOutParams->inode = currInode;
+                    //
+                    return 1;
+                }
+            }
 
 
          }
 
     }
+    //bad params
+    return -1;
 }
 
 char** parseFilePath(char* filePath){
