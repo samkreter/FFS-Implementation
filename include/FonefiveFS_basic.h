@@ -77,6 +77,12 @@ typedef struct {
 } dir_block_t;
 //////////////////////////////////////
 
+
+typedef struct {
+    uint8_t found;
+    inode_ptr_t inode;
+    block_ptr_t parentDir;
+}search_dir_t;
 ///
 /// Creates a new F15FS file at the given location
 /// \param fname The file to create (or overwrite)

@@ -1,6 +1,7 @@
 #include "../include/FonefiveFS_basic.h"
 
 #define BLOCK_SIZE 1024
+#define ROOT_INODE 0
 
 
 
@@ -203,7 +204,7 @@ int findEmptyInode(F15FS *const fs){
     return -1;
 }
 
-//0 for not there -1 for actual error
+//0 for not there -1 for actual error 1 for found
 int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t* inodeIndex){
     dir_block_t dir
     if(block_store_read(fs->bs,i,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
@@ -228,15 +229,41 @@ int freeFilePath(char** pathList){
     free(pathList);
 }
 
-inode_ptr_t getInodeFromPath(F15FS_t *const fs, char* fname){
+
+// 1 found 0 not found but still filled <0 error
+int getInodeFromPath(F15FS_t *const fs, char* fname, search_dir_t* searchOutParams){
     if(fs && fname && strcmp(fname,"") != 0){
         char** pathList = parseFilePath(fname);
         int listSize = *pathList[0] - '0';
         int i = 1;
+        //start it at the root node
+        inode_ptr_t tempInode = ROOT_INODE;
+        int result = 0;
 
-        fs.inodetable[0].data_ptrs[0]
+        for(i = 1; i < listSize; i++){
+            result = searchDir(fs, pathList[1], fs.inodetable[tempInode].data_ptrs[0], &tempInode);
 
-        freeFilePath(pathList);
+            if(result == 0){
+                if(result == 0){
+                    searchOutParams->found = 0;
+                    searchOutParams->parentDir = fs.inodetable[0].data_ptrs[0];
+                    return 0;
+                }
+                else if(result == 1){
+                    searchOutParams->found = 1;
+                    searchOutParams->parentDir = fs.inodetable[0].data_ptrs[0];
+                    searchOutParams->inode = tempInode;
+                    return 1;
+                }
+                else{
+                    fprintf(stderr,"Something went wrong will searching for file");
+                    return -1;
+                }
+             }
+
+
+         }
+
     }
 }
 
@@ -266,17 +293,17 @@ char** parseFilePath(char* filePath){
                     return pathList;
                 }
             }
+            fprintf(stderr, "error during mallocing\n");
             return NULL;
         }else{
             //create string array with right size plus one to add the size in
-            pathList = (char**)malloc(sizeof(char*)*(count+1));
-
-            if(pathList == NULL){
+            if((pathList = (char**)malloc(sizeof(char*)*(count+1))) == NULL){
+                fprintf(stderr, "error during mallocing\n");
                 return NULL;
             }
 
-            pathList[0] = malloc(sizeof(char));
-            if(pathList[0] == NULL){
+            if((pathList[0] = malloc(sizeof(char))) == NULL){
+                fprintf(stderr, "error during mallocing\n");
                 return NULL;
             }
 
@@ -287,10 +314,11 @@ char** parseFilePath(char* filePath){
 
             while(token != NULL){
 
-                pathList[i] = (char*)malloc(strlen(token));
-                if(pathList[i] == NULL){
+                if((pathList[i] = (char*)malloc(strlen(token))) == NULL){
+                    fprintf(stderr, "error during mallocing\n");
                     return NULL;
                 }
+
                 strcpy(pathList[i],token);
 
                 token = strtok(NULL,delim);
@@ -301,6 +329,7 @@ char** parseFilePath(char* filePath){
 
         }
     }
+    fprintf(stderr, "bad params\n");
     return NULL;
 }
 
@@ -315,6 +344,7 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
     //param check
     if(fs && fname && strcmp(fname,"") != 0 && ftype){
         int emptyiNodeIndex = findEmptyInode(fs);
+        char **pathList = parseFilePath(fname);
 
         //set the use byte
         fs->inodeTable[emptyiNodeIndex].metadata.inUse = 1;
