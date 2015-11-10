@@ -299,7 +299,6 @@ char** parseFilePath(const char *const filePath){
         char* temp = nonConstFilePath;
         char** pathList = NULL;
         int count = 0;
-        int i = 1;
         const char *delim = "/";
         char* token;
 
@@ -344,12 +343,24 @@ char** parseFilePath(const char *const filePath){
 
             token = strtok(nonConstFilePath,delim);
 
-
+            int i = 1;
             while(token != NULL){
-                if((pathList[i] = (char*)malloc(strlen(token))) == NULL){
-                    free(nonConstFilePath);
+                if(strlen(token) > FNAME_MAX){
+                    for(i = --i;i >= 0; i--){
+                        free(pathList[i]);
+                    }
                     free(pathList);
-                    fprintf(stderr, "error during mallocing\n");
+                    free(nonConstFilePath);
+                    fprintf(stderr,"File or Dir name to long\n");
+                    return NULL;
+                }
+                if((pathList[i] = (char*)malloc(strlen(token) + 1)) == NULL){
+                    for(;i >= 0; i--){
+                        free(pathList[i]);
+                    }
+                    free(pathList);
+                    free(nonConstFilePath);
+                    fprintf(stderr, "Error during mallocing\n");
                     return NULL;
                 }
 
