@@ -231,9 +231,8 @@ int freeFilePath(char** pathList){
 
 
 // 1 found 0 not found but still filled <0 error
-int getInodeFromPath(F15FS_t *const fs, char* fname, search_dir_t* searchOutParams){
-    if(fs && fname && strcmp(fname,"") != 0){
-        char** pathList = parseFilePath(fname);
+int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOutParams){
+    if(fs && pathList && searchOutParams){
         int listSize = *pathList[0] - '0';
         int i = 1;
         //start it at the root node
@@ -290,13 +289,18 @@ int getInodeFromPath(F15FS_t *const fs, char* fname, search_dir_t* searchOutPara
     return -1;
 }
 
-char** parseFilePath(char* filePath){
+char** parseFilePath(const char *const filePath){
     if(filePath && strcmp(filePath,"") != 0){
-        char* temp = filePath;
-        char** pathList;
+        char* nonConstFilePath = malloc(strlen(filePath)+1);
+        if(!nonConstFilePath){
+            return NULL;
+        }
+        strcpy(nonConstFilePath,filePath);
+        char* temp = nonConstFilePath;
+        char** pathList = NULL;
         int count = 0;
         int i = 1;
-        const char delim[2] = "/";
+        const char *delim = "/";
         char* token;
 
         while(*temp){
@@ -312,20 +316,25 @@ char** parseFilePath(char* filePath){
             if((pathList = (char**)malloc(sizeof(char*)*2)) != NULL){
                 if((pathList[0] = (char*)malloc(sizeof(char))) != NULL){
                     *pathList[0] = 1;
-                    pathList[1] = &filePath;
+                    pathList[1] = nonConstFilePath;
                     return pathList;
                 }
+                free(pathList);
             }
+            free(nonConstFilePath);
             fprintf(stderr, "error during mallocing\n");
             return NULL;
         }else{
             //create string array with right size plus one to add the size in
             if((pathList = (char**)malloc(sizeof(char*)*(count+1))) == NULL){
+                free(nonConstFilePath);
                 fprintf(stderr, "error during mallocing\n");
                 return NULL;
             }
 
             if((pathList[0] = malloc(sizeof(char))) == NULL){
+                free(nonConstFilePath);
+                free(pathList);
                 fprintf(stderr, "error during mallocing\n");
                 return NULL;
             }
@@ -333,11 +342,13 @@ char** parseFilePath(char* filePath){
             //put the length at the begging
             *pathList[0] = count;
 
-            token = strtok(filePath,delim);
+            token = strtok(nonConstFilePath,delim);
+
 
             while(token != NULL){
-
                 if((pathList[i] = (char*)malloc(strlen(token))) == NULL){
+                    free(nonConstFilePath);
+                    free(pathList);
                     fprintf(stderr, "error during mallocing\n");
                     return NULL;
                 }
@@ -347,8 +358,8 @@ char** parseFilePath(char* filePath){
                 token = strtok(NULL,delim);
                 i++;
             }
-
-            return pathList
+            free(nonConstFilePath);
+            return pathList;
 
         }
     }
