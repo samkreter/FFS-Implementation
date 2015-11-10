@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char** parseFilePath(const char *const filePath);
+int parseFilePath(const char *const filePath, char*** pathListOutput);
 
 int main(){
 
@@ -11,23 +11,27 @@ int main(){
 
 
 
-    char **test = parseFilePath(path);
+    char **test = NULL;
+    if(parseFilePath(path, &test)){
 
-    printf("%d\n",(int)(*test[0]));
-    int size = (int)(*test[0]);
-    int i = 1;
-    for(;i<size+1;i++){
-        printf("%s\n",test[i]);
+
+
+        printf("%d\n",(int)(*test[0]));
+        int size = (int)(*test[0]);
+        int i = 1;
+        for(;i<size+1;i++){
+            printf("%s\n",test[i]);
+        }
     }
 
     return 0;
 }
 
-char** parseFilePath(const char *const filePath){
+int parseFilePath(const char *const filePath, char*** pathListOutput){
     if(filePath && strcmp(filePath,"") != 0){
         char* nonConstFilePath = malloc(strlen(filePath)+1);
         if(!nonConstFilePath){
-            return NULL;
+            return 0;
         }
         strcpy(nonConstFilePath,filePath);
         char* temp = nonConstFilePath;
@@ -51,26 +55,27 @@ char** parseFilePath(const char *const filePath){
                 if((pathList[0] = (char*)malloc(sizeof(char))) != NULL){
                     *pathList[0] = 1;
                     pathList[1] = nonConstFilePath;
-                    return pathList;
+                    *pathListOutput = pathList;
+                    return 1;
                 }
                 free(pathList);
             }
             free(nonConstFilePath);
             fprintf(stderr, "error during mallocing\n");
-            return NULL;
+            return 0;
         }else{
             //create string array with right size plus one to add the size in
             if((pathList = (char**)malloc(sizeof(char*)*(count+1))) == NULL){
                 free(nonConstFilePath);
                 fprintf(stderr, "error during mallocing\n");
-                return NULL;
+                return 0;
             }
 
             if((pathList[0] = malloc(sizeof(char))) == NULL){
                 free(nonConstFilePath);
                 free(pathList);
                 fprintf(stderr, "error during mallocing\n");
-                return NULL;
+                return 0;
             }
 
             //put the length at the begging
@@ -84,7 +89,7 @@ char** parseFilePath(const char *const filePath){
                     free(nonConstFilePath);
                     free(pathList);
                     fprintf(stderr, "error during mallocing\n");
-                    return NULL;
+                    return 0;
                 }
 
                 strcpy(pathList[i],token);
@@ -93,10 +98,11 @@ char** parseFilePath(const char *const filePath){
                 i++;
             }
             free(nonConstFilePath);
-            return pathList;
+            *pathListOutput = pathList;
+            return 1;
 
         }
     }
     fprintf(stderr, "bad params\n");
-    return NULL;
+    return 0;
 }

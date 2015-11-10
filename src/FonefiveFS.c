@@ -289,11 +289,11 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
     return -1;
 }
 
-char** parseFilePath(const char *const filePath){
+char** parseFilePath(const char *const filePath, char*** pathListOutput){
     if(filePath && strcmp(filePath,"") != 0){
         char* nonConstFilePath = malloc(strlen(filePath)+1);
         if(!nonConstFilePath){
-            return NULL;
+            return -1;
         }
         strcpy(nonConstFilePath,filePath);
         char* temp = nonConstFilePath;
@@ -316,26 +316,27 @@ char** parseFilePath(const char *const filePath){
                 if((pathList[0] = (char*)malloc(sizeof(char))) != NULL){
                     *pathList[0] = 1;
                     pathList[1] = nonConstFilePath;
-                    return pathList;
+                    *pathListOutput = pathList;
+                    return 1;
                 }
                 free(pathList);
             }
             free(nonConstFilePath);
             fprintf(stderr, "error during mallocing\n");
-            return NULL;
+            return -1;
         }else{
             //create string array with right size plus one to add the size in
             if((pathList = (char**)malloc(sizeof(char*)*(count+1))) == NULL){
                 free(nonConstFilePath);
                 fprintf(stderr, "error during mallocing\n");
-                return NULL;
+                return -1;
             }
 
             if((pathList[0] = malloc(sizeof(char))) == NULL){
                 free(nonConstFilePath);
                 free(pathList);
                 fprintf(stderr, "error during mallocing\n");
-                return NULL;
+                return -1;
             }
 
             //put the length at the begging
@@ -352,7 +353,7 @@ char** parseFilePath(const char *const filePath){
                     free(pathList);
                     free(nonConstFilePath);
                     fprintf(stderr,"File or Dir name to long\n");
-                    return NULL;
+                    return -1;
                 }
                 if((pathList[i] = (char*)malloc(strlen(token) + 1)) == NULL){
                     for(;i >= 0; i--){
@@ -361,7 +362,7 @@ char** parseFilePath(const char *const filePath){
                     free(pathList);
                     free(nonConstFilePath);
                     fprintf(stderr, "Error during mallocing\n");
-                    return NULL;
+                    return -1;
                 }
 
                 strcpy(pathList[i],token);
@@ -370,12 +371,13 @@ char** parseFilePath(const char *const filePath){
                 i++;
             }
             free(nonConstFilePath);
-            return pathList;
+            *pathListOutput = pathList;
+            return 1;
 
         }
     }
     fprintf(stderr, "bad params\n");
-    return NULL;
+    return -1;
 }
 
 ///
