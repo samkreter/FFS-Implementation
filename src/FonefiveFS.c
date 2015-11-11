@@ -207,7 +207,7 @@ int findEmptyInode(F15FS *const fs){
 //0 for not there -1 for actual error 1 for found
 int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t* inodeIndex){
     dir_block_t dir
-    if(block_store_read(fs->bs,i,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
+    if(block_store_read(fs->bs,blockNum,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
         int i = 0;
         for(i = 0; i < dir.metadata.size; i++){
             if(strcmp(dir.entries[i].filename,fname) == 0){
@@ -380,9 +380,21 @@ char** parseFilePath(const char *const filePath, char*** pathListOutput){
     return -1;
 }
 
-int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t dirInode){
+int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode){
     if(fs && fname && strcmp(fname,"") != 0 && dirInode){
-        fs.inodeTable[]
+        dir_block_t dir
+        if(block_store_read(fs->bs,dirInode,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
+            if(dir.metadata.size < DIR_REC_MAX && strlen(fname) <= FNAME_MAX){
+                dir.entries[dir.metadata.size+1].inode = fileInode;
+                strcpy(dir.entries[dir.metadata.size+1].fname, fname);
+                //write the block back to the store
+                if(block_store_write(fs->bs,dirInode,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
+                    return 1;
+                }
+            }
+            return -1;
+        }
+        return -1;
     }
     return -1;
 }
@@ -399,19 +411,25 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
     if(fs && fname && strcmp(fname,"") != 0 && ftype){
         int emptyiNodeIndex = findEmptyInode(fs);
         char **pathList = NULL;
+        int listSize = 0;
         search_dir_t dirInfo;
         if(parseFilePath(fname,&pathList)){
             if(getInodeFromPath(fs,pathList, &dirInfo) == 0){
+                listSize = (int)pathList[0];
                 //set the use byte
                 fs->inodeTable[emptyiNodeIndex].metadata.inUse = 1;
 
                 //add the fname to the inode
-                strcpy(fs->inodeTable[emptyiNodeIndex].fname,fname)
+                strcpy(fs->inodeTable[emptyiNodeIndex].fname,fname);
+                addFIleToDir(fs, pathList[listSize], emptyiNodeIndex,parentDir);
 
                 if(ftype == DIRECTORY){
                     if((fs->inodeTable[emptyiNodeIndex].data_ptrs[0] = setUpDirBlock(fs->bs)) > 0){
                         return 1;
                     }
+                }else{
+                    //no need to do anything if its just a file, need to actual have things be writen
+                    return 1;
                 }
             }
         }
@@ -427,7 +445,26 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
 /// \return 0 on success, < 0 on error
 ///
 int fs_get_dir(const F15FS_t *const fs, const char *const fname, dir_rec_t *const records){
+    if(fs && fname && strcmp(fname, "") != 0 && records){
+        char** pathList = NULL;
+        search_dir_t dirInfo;
+        if(parseFilePath(fname, &pathList) > 0){
+            if(getInodeFromPath(fs,pathList,dirInfo) > 0){
+                dir_block_t dir
+                if(block_store_read(fs->bs,inodeTable[dirInfo.inode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
+                    int i = 0;
+                    records.total = dir.metadata.size;
+                    for(i = 0; i < dir.metadata.size; i++){
+                        strcpy(records.contents[i].fname, dir.entries[i].filename);
+                        records.contents[i].filetype = dir.entries[i].filetype;
+                    }
+                    return 0;
+                }
+            }
+        }
 
+    }
+    return -1;
 }
 
 ///
