@@ -73,7 +73,7 @@ int allocateInodeTableInBS(block_store_t* bs){
 
         //set the file type to a directory
         rootNode.metaData.filetype = DIRECTORY;
-        rootNode.metadata.inUse = 1;
+        rootNode.metaData.inUse = 1;
 
 		//allocate the root directory node and check it worked
 		if((rootNode.data_ptrs[0] = setUpDirBlock(bs)) < 0){
@@ -192,11 +192,11 @@ int fs_unmount(F15FS_t *fs){
 
 
 
-int findEmptyInode(F15FS *const fs){
+int findEmptyInode(F15FS_t *const fs){
     if(fs){
         int i = 0;
         for(i = 0; i < 256; i++){
-            if(fs->inodeTable[i].metadata.inUse != 1){
+            if(fs->inodeTable[i].metaData.inUse != 1){
                 return i;
             }
         }
@@ -206,10 +206,10 @@ int findEmptyInode(F15FS *const fs){
 
 //0 for not there -1 for actual error 1 for found
 int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t* inodeIndex){
-    dir_block_t dir
+    dir_block_t dir;
     if(block_store_read(fs->bs,blockNum,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
         int i = 0;
-        for(i = 0; i < dir.metadata.size; i++){
+        for(i = 0; i < dir.metaData.size; i++){
             if(strcmp(dir.entries[i].filename,fname) == 0){
                 *inodeIndex = dir.entries[i].inode;
                 return 1;
@@ -227,6 +227,7 @@ int freeFilePath(char** pathList){
         free(pathList[i]);
     }
     free(pathList);
+    return 1;
 }
 
 
@@ -241,7 +242,7 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
         int result = 0;
 
         for(i = 1; i < listSize; i++){
-            result = searchDir(fs, pathList[1], fs.inodetable[parentInode].data_ptrs[0], &currInode);
+            result = searchDir(fs, pathList[1], fs->inodeTable[parentInode].data_ptrs[0], &currInode);
 
             if(result == 0){
                 //not found but at the end of list, populate with parent direct
@@ -260,19 +261,19 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
 
             }
             else if(result == 1){
-                if((listSize - i) != 0 && fs.inodeTable[currInode].metadata.filetype == DIRECTORY){
+                if((listSize - i) != 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
                     parentInode = currInode;
                     continue;
                 }
-                else if((listSize - i) == 0 && fs.inodeTable[currInode].metadata.filetype == DIRECTORY){
+                else if((listSize - i) == 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
                     //can't end it path with directory
                     return -2;
                 }
-                else if((listSize - i) != 0 && fs.inodeTable[currInode].metadata.filetype == REGULAR){
+                else if((listSize - i) != 0 && fs->inodeTable[currInode].metaData.filetype == REGULAR){
                     //can't have file not at end of path
                     return -3;
                 }
-                else if((listSize - i) == 0 && fs.inodeTable[currInode].metadata.filetype == REGULAR){
+                else if((listSize - i) == 0 && fs->inodeTable[currInode].metaData.filetype == REGULAR){
                     searchOutParams->found = 1;
                     searchOutParams->parentDir = parentInode;
                     searchOutParams->inode = currInode;
@@ -289,7 +290,7 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
     return -1;
 }
 
-char** parseFilePath(const char *const filePath, char*** pathListOutput){
+int parseFilePath(const char *const filePath, char*** pathListOutput){
     if(filePath && strcmp(filePath,"") != 0){
         char* nonConstFilePath = malloc(strlen(filePath)+1);
         if(!nonConstFilePath){
@@ -347,7 +348,7 @@ char** parseFilePath(const char *const filePath, char*** pathListOutput){
             int i = 1;
             while(token != NULL){
                 if(strlen(token) > FNAME_MAX){
-                    for(i = --i;i >= 0; i--){
+                    for(i = i - 1;i >= 0; i--){
                         free(pathList[i]);
                     }
                     free(pathList);
@@ -382,11 +383,11 @@ char** parseFilePath(const char *const filePath, char*** pathListOutput){
 
 int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode){
     if(fs && fname && strcmp(fname,"") != 0 && dirInode){
-        dir_block_t dir
+        dir_block_t dir;
         if(block_store_read(fs->bs,dirInode,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
-            if(dir.metadata.size < DIR_REC_MAX && strlen(fname) <= FNAME_MAX){
-                dir.entries[dir.metadata.size+1].inode = fileInode;
-                strcpy(dir.entries[dir.metadata.size+1].fname, fname);
+            if(dir.metaData.size < DIR_REC_MAX && strlen(fname) <= FNAME_MAX){
+                dir.entries[dir.metaData.size+1].inode = fileInode;
+                strcpy(dir.entries[dir.metaData.size+1].filename, fname);
                 //write the block back to the store
                 if(block_store_write(fs->bs,dirInode,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
                     return 1;
@@ -413,15 +414,15 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
         char **pathList = NULL;
         int listSize = 0;
         search_dir_t dirInfo;
-        if(parseFilePath(fname,&pathList)){
+        if(parseFilePath(fname,&pathList) > 0){
             if(getInodeFromPath(fs,pathList, &dirInfo) == 0){
-                listSize = (int)pathList[0];
+                listSize = (int)*pathList[0];
                 //set the use byte
-                fs->inodeTable[emptyiNodeIndex].metadata.inUse = 1;
+                fs->inodeTable[emptyiNodeIndex].metaData.inUse = 1;
 
                 //add the fname to the inode
                 strcpy(fs->inodeTable[emptyiNodeIndex].fname,fname);
-                addFIleToDir(fs, pathList[listSize], emptyiNodeIndex,parentDir);
+                addFIleToDir(fs, pathList[listSize], emptyiNodeIndex,dirInfo.parentDir);
 
                 if(ftype == DIRECTORY){
                     if((fs->inodeTable[emptyiNodeIndex].data_ptrs[0] = setUpDirBlock(fs->bs)) > 0){
@@ -444,19 +445,19 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
 /// \param records the record object to fill
 /// \return 0 on success, < 0 on error
 ///
-int fs_get_dir(const F15FS_t *const fs, const char *const fname, dir_rec_t *const records){
+int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const records){
     if(fs && fname && strcmp(fname, "") != 0 && records){
         char** pathList = NULL;
         search_dir_t dirInfo;
         if(parseFilePath(fname, &pathList) > 0){
-            if(getInodeFromPath(fs,pathList,dirInfo) > 0){
-                dir_block_t dir
-                if(block_store_read(fs->bs,inodeTable[dirInfo.inode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
+            if(getInodeFromPath(fs,pathList,&dirInfo) > 0){
+                dir_block_t dir;
+                if(block_store_read(fs->bs,fs->inodeTable[dirInfo.inode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
                     int i = 0;
-                    records.total = dir.metadata.size;
-                    for(i = 0; i < dir.metadata.size; i++){
-                        strcpy(records.contents[i].fname, dir.entries[i].filename);
-                        records.contents[i].filetype = dir.entries[i].filetype;
+                    records->total = dir.metaData.size;
+                    for(i = 0; i < dir.metaData.size; i++){
+                        strcpy(records->contents[i].fname, dir.entries[i].filename);
+                        records->contents[i].ftype = dir.entries[i].ftype;
                     }
                     return 0;
                 }

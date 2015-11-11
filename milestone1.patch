@@ -1,0 +1,2399 @@
+From cd408b5fccbbaf1fc3f110781afab1f8b4e7fd37 Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Wed, 4 Nov 2015 14:36:50 -0600
+Subject: [PATCH 01/13] fixed the makefile
+
+---
+ CMakeLists.txt | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index b5a65bf..eb87c86 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -1,6 +1,7 @@
+ cmake_minimum_required (VERSION 2.8.0)
+ project (FonefiveFS)
+ 
++
+ set(CMAKE_OSX_SYSROOT "/") # Mac users will thank me
+ #set(CMAKE_VERBOSE_MAKEFILE ON)
+ set(CMAKE_COLOR_MAKEFILE ON)
+@@ -12,14 +13,14 @@ find_library(blockstore_lib block_store)
+ #find_library(bitmap_lib bitmap)
+ #find_library(dynarray_lib dyn_array)
+ 
+-message(FATAL_ERROR "Copy your selected spec to include/${PROJECT_NAME}.h and delete this line!")
++#message(FATAL_ERROR "Copy your selected spec to include/${PROJECT_NAME}.h and delete this line!")
+ 
+ add_library(${PROJECT_NAME} SHARED src/${PROJECT_NAME}.c)
+ target_link_libraries(${PROJECT_NAME} ${blockstore_lib}) # Add other libs if you need them
+ set_target_properties(${PROJECT_NAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+ 
+ install(TARGETS ${PROJECT_NAME} DESTINATION lib)
+-install(FILES include/${PROJECT_NAME}.h DESTINATION include)
++install(FILES include/FonefiveFS_basic.h DESTINATION include)
+ 
+ add_executable(${PROJECT_NAME}_tester test/test.c)
+ target_link_libraries(${PROJECT_NAME}_tester ${blockstore_lib}) # Don't forget to add them here, too!
+-- 
+1.9.1
+
+
+From 462127dd5d79396beb282ba7d4841e6259d2a319 Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Wed, 4 Nov 2015 17:07:22 -0600
+Subject: [PATCH 02/13] working one the first functin
+
+---
+ include/FonefiveFS_basic.h | 22 +++++++++++-
+ src/FonefiveFS.c           | 84 +++++++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 104 insertions(+), 2 deletions(-)
+
+diff --git a/include/FonefiveFS_basic.h b/include/FonefiveFS_basic.h
+index ea7d234..d2a2612 100644
+--- a/include/FonefiveFS_basic.h
++++ b/include/FonefiveFS_basic.h
+@@ -5,7 +5,7 @@
+ #include <block_store.h>
+ // Probably other things
+ 
+-typedef struct F15FS F15FS_t;
++
+ 
+ // Enum to differentiate between different kinds of files
+ typedef enum {
+@@ -19,6 +19,23 @@ typedef enum {
+ #define FNAME_MAX 47
+ #define DIR_REC_MAX 20
+ 
++
++typedef struct metaData{
++	char placeholder[48];
++} metaData_t;
++
++typedef struct iNodeTable {
++	char fname[FNAME_MAX+1];
++	metaData_t metaData;
++	uint32_t data_ptrs[8];
++} iNode_t;
++
++//set up the file system structure
++typedef struct F15FS {
++	block_store_t *block_store;
++	iNode_t* inodeTable;
++} F15FS_t;
++
+ // It's a directory entry. Won't really be used internally
+ typedef struct {
+ 	ftype_t ftype;
+@@ -39,6 +56,9 @@ typedef struct dir_rec {
+ ///
+ int fs_format(const char *const fname);
+ 
++
++iNode_t** createInodeTable();
++
+ ///
+ /// Mounts the specified file and returns an F15FS object
+ /// \param fname the file to load
+diff --git a/src/FonefiveFS.c b/src/FonefiveFS.c
+index 3b8d171..a4fc062 100644
+--- a/src/FonefiveFS.c
++++ b/src/FonefiveFS.c
+@@ -1,2 +1,84 @@
+-#include "../include/FonefiveFS.h"
++#include "../include/FonefiveFS_basic.h"
+ 
++
++
++
++int fs_format(const char *const fname){
++	if(fname){
++		block_store_t* bs = block_store_create();
++		if(bs){
++			allocateInodeTableInBS(bs);
++		}
++		return -1;
++	}
++	return -1;
++}
++
++
++int allocateInodeTableInBS(blockstore_t* bs){
++	if(bs){
++
++
++		size_t i = 0;
++		for(i=8; i<41; i++){
++			if(!block_store_request(bs,i)){
++				return -1;
++			}
++		}
++
++		iNode_t rootNode;
++		rootNode.fname = "/";
++		//allocate the root directory node
++		rootNode.data_ptrs[0] = block_store_allocate(bs);
++
++		rootDir
++		
++		if(write_to_back_store(rootNode,8,48)){
++			return 1;
++		}
++		return -11;
++		
++	}
++	return -1;
++}
++
++// iNode_t* createInodeTable(block_store_t* bs){
++// 	iNode_t* iNodeTable = malloc(sizeof(iNodeTable_t)*256);
++	
++// 	if(iNodeTable){
++// 		iNodeTable[0].fname = "/";
++// 		iNodeTable[0].data_ptrs[0] = 8;
++// 		return iNodeTable;
++
++// 		// for(i = 8; i < 41; i++){
++// 		// 	if(block_store_request(bs,i)){
++// 		// 		iNode_t buffer[8];
++// 		// 		int startingPos = (i-8)*8;
++// 		// 		memcpy(buffer,iNodeTable[startingPos],sizeof(iNode_t)*8);
++// 		// 		if(!write_to_back_store(buffer,i)){
++// 		// 			printf("Failed to write to backing store for inode Creatation")
++// 		// 		}
++// 		// 	}else{
++// 		// 		printf("Could not allocate the needed inodeTable\n");
++// 		// 		return NULL;
++// 		// 	}
++// 		// }
++
++		
++// 	}
++// 	return NULL;
++// }
++
++///
++/// Mounts the specified file and returns an F15FS object
++/// \param fname the file to load
++/// \return An F15FS object ready to use, NULL on error
++///
++F15FS_t *fs_mount(const char *const fname);
++
++/// Unmounts, closes, and destructs the given object,
++///  saving all unwritten contents (if any) to file
++/// \param fs The F15FS file
++/// \return 0 on success, < 0 on error
++///
++int fs_unmount(F15FS_t *fs);
+\ No newline at end of file
+-- 
+1.9.1
+
+
+From a4f8d2c67a96e951e9a0e10c5204214b33809a39 Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Thu, 5 Nov 2015 14:00:10 -0600
+Subject: [PATCH 03/13] first run on fs_format
+
+---
+ src/FonefiveFS.c | 46 +++++++++++++++++++++++++++++++++++-----------
+ 1 file changed, 35 insertions(+), 11 deletions(-)
+
+diff --git a/src/FonefiveFS.c b/src/FonefiveFS.c
+index a4fc062..14889be 100644
+--- a/src/FonefiveFS.c
++++ b/src/FonefiveFS.c
+@@ -7,19 +7,37 @@ int fs_format(const char *const fname){
+ 	if(fname){
+ 		block_store_t* bs = block_store_create();
+ 		if(bs){
+-			allocateInodeTableInBS(bs);
++			if(allocateInodeTableInBS(bs) >= 0){
++                //write the block store to the file
++                block_store_link(bs, fname);
++                return 1;
++            }
++
+ 		}
+-		return -1;
+ 	}
+ 	return -1;
+ }
+ 
+ 
+-int allocateInodeTableInBS(blockstore_t* bs){
+-	if(bs){
++dir_ptr_t setUpDirBlock(const blockstore_t* bs){
++
++    dir_block_t newDir;
++    newDir.meteData.size = 0;
++    dir_ptr_t dirBlockPos;
+ 
++    if(dirBlockPos = block_store_allocate(bs)){
++        if(write_to_back_store(newDir,dirBlockPos,1024)){
++            return dirBlockPos;
++        }
++    }
++    return -1;
++}
+ 
++int allocateInodeTableInBS(const blockstore_t* bs){
++
++    if(bs){
+ 		size_t i = 0;
++        //allocate the room for the inode table
+ 		for(i=8; i<41; i++){
+ 			if(!block_store_request(bs,i)){
+ 				return -1;
+@@ -27,24 +45,30 @@ int allocateInodeTableInBS(blockstore_t* bs){
+ 		}
+ 
+ 		iNode_t rootNode;
++        //set root filename as '/'
+ 		rootNode.fname = "/";
+-		//allocate the root directory node
+-		rootNode.data_ptrs[0] = block_store_allocate(bs);
+ 
+-		rootDir
+-		
++        //set the file type to a directory
++        rootNode.meteData.filetype = DIRECTORY;
++
++		//allocate the root directory node and check it worked
++		if((rootNode.data_ptrs[0] = setUpDirBlock(bs)) < 0){
++            return -1;
++        }
++
++        //write root inode to the blockstore
+ 		if(write_to_back_store(rootNode,8,48)){
+ 			return 1;
+ 		}
+ 		return -11;
+-		
++
+ 	}
+ 	return -1;
+ }
+ 
+ // iNode_t* createInodeTable(block_store_t* bs){
+ // 	iNode_t* iNodeTable = malloc(sizeof(iNodeTable_t)*256);
+-	
++
+ // 	if(iNodeTable){
+ // 		iNodeTable[0].fname = "/";
+ // 		iNodeTable[0].data_ptrs[0] = 8;
+@@ -64,7 +88,7 @@ int allocateInodeTableInBS(blockstore_t* bs){
+ // 		// 	}
+ // 		// }
+ 
+-		
++
+ // 	}
+ // 	return NULL;
+ // }
+-- 
+1.9.1
+
+
+From 38a40aa7efee2e9b739b7ec32347b2b747d11161 Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Thu, 5 Nov 2015 14:03:56 -0600
+Subject: [PATCH 04/13] forgot to commit the header
+
+---
+ include/FonefiveFS_basic.h | 30 +++++++++++++++++++++++++-----
+ 1 file changed, 25 insertions(+), 5 deletions(-)
+
+diff --git a/include/FonefiveFS_basic.h b/include/FonefiveFS_basic.h
+index d2a2612..29a2a54 100644
+--- a/include/FonefiveFS_basic.h
++++ b/include/FonefiveFS_basic.h
+@@ -19,14 +19,17 @@ typedef enum {
+ #define FNAME_MAX 47
+ #define DIR_REC_MAX 20
+ 
++typedef uint8_t inode_ptr_t;
++typedef uint32_t block_ptr_t;
+ 
+ typedef struct metaData{
+-	char placeholder[48];
+-} metaData_t;
++    ftype_t filetype;
++	char placeholder[47];
++} inode_meta_data_t;
+ 
+ typedef struct iNodeTable {
+ 	char fname[FNAME_MAX+1];
+-	metaData_t metaData;
++	inode_meta_data_t metaData;
+ 	uint32_t data_ptrs[8];
+ } iNode_t;
+ 
+@@ -49,6 +52,25 @@ typedef struct dir_rec {
+     dir_entry_t contents[DIR_REC_MAX];
+ } dir_rec_t;
+ 
++
++//for dir block data/////////////////
++//the entry that holds the filename and inode ptr, could be a directory
++typedef struct {
++    char* filename[FNAME_MAX+1];
++    inode_ptr_t inode;
++}dir_entry_t;
++
++//metadata for the directory itsself
++typedef struct {
++    char filler[44];
++} dir_meta_t;
++//the actuall entry put onto the block itself
++typedef struct {
++    dir_meta_t metaData;
++    dir_entry_t entries[DIR_REC_MAX];
++} dir_block_t;
++//////////////////////////////////////
++
+ ///
+ /// Creates a new F15FS file at the given location
+ /// \param fname The file to create (or overwrite)
+@@ -57,8 +79,6 @@ typedef struct dir_rec {
+ int fs_format(const char *const fname);
+ 
+ 
+-iNode_t** createInodeTable();
+-
+ ///
+ /// Mounts the specified file and returns an F15FS object
+ /// \param fname the file to load
+-- 
+1.9.1
+
+
+From 124af970e8b552c91658cccb7e1a54b1e69c440c Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Thu, 5 Nov 2015 14:49:43 -0600
+Subject: [PATCH 05/13] passed first test for fs_format
+
+---
+ _build/FonefiveFS_tester   | Bin 0 -> 18209 bytes
+ include/FonefiveFS_basic.h |  13 +++++++++----
+ src/FonefiveFS.c           |  42 +++++++++++++++++++++++++++---------------
+ 3 files changed, 36 insertions(+), 19 deletions(-)
+ create mode 100755 _build/FonefiveFS_tester
+
+diff --git a/_build/FonefiveFS_tester b/_build/FonefiveFS_tester
+new file mode 100755
+index 0000000000000000000000000000000000000000..ef1707095f2cf4151f91e5fbe6a0f119e92afffb
+GIT binary patch
+literal 18209
+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
+
+literal 0
+HcmV?d00001
+
+diff --git a/include/FonefiveFS_basic.h b/include/FonefiveFS_basic.h
+index 29a2a54..e5259a8 100644
+--- a/include/FonefiveFS_basic.h
++++ b/include/FonefiveFS_basic.h
+@@ -56,18 +56,19 @@ typedef struct dir_rec {
+ //for dir block data/////////////////
+ //the entry that holds the filename and inode ptr, could be a directory
+ typedef struct {
+-    char* filename[FNAME_MAX+1];
++    char filename[FNAME_MAX+1];
+     inode_ptr_t inode;
+-}dir_entry_t;
++}dir_block_entry_t;
+ 
+ //metadata for the directory itsself
+ typedef struct {
+-    char filler[44];
++    uint32_t size;
++    char filler[40];
+ } dir_meta_t;
+ //the actuall entry put onto the block itself
+ typedef struct {
+     dir_meta_t metaData;
+-    dir_entry_t entries[DIR_REC_MAX];
++    dir_block_entry_t entries[DIR_REC_MAX];
+ } dir_block_t;
+ //////////////////////////////////////
+ 
+@@ -79,6 +80,10 @@ typedef struct {
+ int fs_format(const char *const fname);
+ 
+ 
++block_ptr_t setUpDirBlock(block_store_t* bs);
++int allocateInodeTableInBS(block_store_t* bs);
++
++
+ ///
+ /// Mounts the specified file and returns an F15FS object
+ /// \param fname the file to load
+diff --git a/src/FonefiveFS.c b/src/FonefiveFS.c
+index 14889be..3ba8414 100644
+--- a/src/FonefiveFS.c
++++ b/src/FonefiveFS.c
+@@ -5,12 +5,16 @@
+ 
+ int fs_format(const char *const fname){
+ 	if(fname){
++		printf("GOt into fs_format\n");
+ 		block_store_t* bs = block_store_create();
+ 		if(bs){
++			printf("Block Store Created good\n");
+ 			if(allocateInodeTableInBS(bs) >= 0){
++				printf("got through allocation\n");
+                 //write the block store to the file
+                 block_store_link(bs, fname);
+-                return 1;
++                printf("got linked up\n");
++                return 0;
+             }
+ 
+ 		}
+@@ -19,21 +23,24 @@ int fs_format(const char *const fname){
+ }
+ 
+ 
+-dir_ptr_t setUpDirBlock(const blockstore_t* bs){
++block_ptr_t setUpDirBlock(block_store_t* bs){
+ 
+     dir_block_t newDir;
+-    newDir.meteData.size = 0;
+-    dir_ptr_t dirBlockPos;
+-
+-    if(dirBlockPos = block_store_allocate(bs)){
+-        if(write_to_back_store(newDir,dirBlockPos,1024)){
+-            return dirBlockPos;
+-        }
++    newDir.metaData.size = 0;
++    block_ptr_t dirBlockPos;
++    printf("In setupdirblock\n");
++    if((dirBlockPos = block_store_allocate(bs))){
++    	printf("alloction worked in sudb\n");
++    	if(block_store_write(bs, dirBlockPos, &newDir, 1024, 0) == 1024){
++    		printf("all good in the sudb with \n");
++    		return dirBlockPos;
++    	}
++     
+     }
+     return -1;
+ }
+ 
+-int allocateInodeTableInBS(const blockstore_t* bs){
++int allocateInodeTableInBS(block_store_t* bs){
+ 
+     if(bs){
+ 		size_t i = 0;
+@@ -46,10 +53,10 @@ int allocateInodeTableInBS(const blockstore_t* bs){
+ 
+ 		iNode_t rootNode;
+         //set root filename as '/'
+-		rootNode.fname = "/";
++		rootNode.fname[0] = '/';
+ 
+         //set the file type to a directory
+-        rootNode.meteData.filetype = DIRECTORY;
++        rootNode.metaData.filetype = DIRECTORY;
+ 
+ 		//allocate the root directory node and check it worked
+ 		if((rootNode.data_ptrs[0] = setUpDirBlock(bs)) < 0){
+@@ -57,7 +64,7 @@ int allocateInodeTableInBS(const blockstore_t* bs){
+         }
+ 
+         //write root inode to the blockstore
+-		if(write_to_back_store(rootNode,8,48)){
++        if(block_store_write(bs, 8, &rootNode, 48, 0) == 48){
+ 			return 1;
+ 		}
+ 		return -11;
+@@ -98,11 +105,16 @@ int allocateInodeTableInBS(const blockstore_t* bs){
+ /// \param fname the file to load
+ /// \return An F15FS object ready to use, NULL on error
+ ///
+-F15FS_t *fs_mount(const char *const fname);
++F15FS_t *fs_mount(const char *const fname){
++	F15FS_t * hey = NULL;
++	return hey;
++}
+ 
+ /// Unmounts, closes, and destructs the given object,
+ ///  saving all unwritten contents (if any) to file
+ /// \param fs The F15FS file
+ /// \return 0 on success, < 0 on error
+ ///
+-int fs_unmount(F15FS_t *fs);
+\ No newline at end of file
++int fs_unmount(F15FS_t *fs){
++	return 0;
++}
+\ No newline at end of file
+-- 
+1.9.1
+
+
+From 6086ed85c3e01cd598f61229f167e34a1210b8d0 Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Thu, 5 Nov 2015 14:59:12 -0600
+Subject: [PATCH 06/13] passed the tests
+
+---
+ _build/FonefiveFS_tester | Bin 18209 -> 18217 bytes
+ src/FonefiveFS.c         |   3 ++-
+ 2 files changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/_build/FonefiveFS_tester b/_build/FonefiveFS_tester
+index ef1707095f2cf4151f91e5fbe6a0f119e92afffb..11a485f115ec53a7b14ef33ff7798705bf95831e 100755
+GIT binary patch
+delta 2126
+zcmZvde{54#6vyv<UCRcnKeql@+2*z=jKNsP1SSZf-Gn}VC_yp-ae@mIMlw^Nq)ee5
+z;()n8sMkM07G?j4sEI#HbR%d7#*76>Kn*%jei)WKoQYisGKEpU=e;)}q%YYy@0{~J
+zpL=ib+r1t8_|biQ|3ofFOO9mNT}*xK(Z0AXVAq0x-K)L?#8H0PerTrg_})v4wzXZl
+z{rU&CYRiX%3vb5`NV3F(;(D6PU2f6TPOX{ca>lY)CaV!P;}V<Dv%B<cKx{O+c(Z6V
+z`uTiu!RX;(!A&k+A>1a9JCLQZB)zL%?-~%Vm|SkASL^j^w_Y6-QIm(?iJdh0j21%3
+zJts*k_w-;AW3NP-<el3U7ThGa%~LF2vA4Q|>*9MLP^R5aCOe6y9LJm7I&TQdAr_S5
+zhp6nJWE+yLJ<46ETDrHE#g9?t?l4tq6s>xZ1Tw_&GgQ2SqDmbwb|&$NmohzNeN=f*
+zZEHDwmj>%m&LC`U`4!R5Z^*LXqWB-A+a$U&Crn#K>NzZpu`O9~LpJg=k!e#KbhO-7
+ztE`ou%o{%u(+e6ES!A0x@N*(;uIJ0e4Ra}9C~TI>NFjCqh9R`o+MtfVNV(pTT<v!?
+za%;c5^G|EMfeO!JsFv>F9J$RnY%OHI&aKFH`O$d%Fy6lX5e93}c(*`-@GOM1F8jS?
+zQdx~$9CD^e!x3U_CDxaa_&NvC+_fMz>m!Y|Lub(h6+5wv_$-yLf!0y$RFnzXu0^R)
+zwHj)MHKNTcOsw92!BUqPe|XQg(Ci#4GKY{$QX|J`$Qu@oSW3hY5g}(vBN6pqtrrqs
+zXD+dpMpDD#XvC-obl5e7%4CA6OD%c`wq1o)5Nug$)@F^hSZBRUtgHVJAKz~Tn{xBP
+zhL)=|Kha)DO`D+6l4fn0exkhtnzqdMRg}7){ZRNiR}pGOYSd-4O~NXV>8yK*6+cX`
+z`o(GA-H5dmh`(%(ykEu?vKo2s6!Oa!m-J7)ET0@U;NwhJ&czC|7E3EX|2vsHjRBkQ
+zB$Ef=8;6p~1Uv)SigV!<{8RAVnE4v`i}20x{qTq3&Dc0PKi<GnuEFnsXE=6ti|_4E
+z^J{`TJg`$8#YI~%f_jSi%+_5}b*4$$H+EDyV^3hPwfIv+lcSiwDLP<Rh+anle@@(l
+zog*@w1vukMV1-x!+awxbSI1hN%SVYs{u&;PEq$zAk_wID0(S~yQ4ueU6&IaPgMMgy
+zUPQ|Dg3s7G)iUO++sydr$8jD=(e;dF?!tVt=Og5~%MFYLbonV=&f9kw8FNunE;SjV
+zouQlr*2?pLQp5A194oZEfVvIQvmuuK1I49vuodQ7FC1g{Rf}}{)e&5&jte{L%wDzp
+zi7s+BFz%Uxzz{th&dI<8dF3sYem=~YJ4T~7=9?HR7l{eEk;XD0rRWOh`uZluU!wvo
+z&6MuJ1l?6=<RO~OeEp8G=)>^#=OJ~yilv1{n#R$!AWb59jV>?wU!J=LK&dLM7aB1!
+zJmT%*ym13IuNnZTKD<3|8;R=%MR#!yu9d#x-#LFdcB14{KKcZc(zq#TN-q){CO^Z!
+zh<!GBFoQOKx+f!ulbfEP=$l@d(X2<!!abuh<H41>5>W#GF7zZ~2WR*VyiQ!7S;_N-
+zd)8b&ELOs%i-WNHV|}wC9M|l|*$#t+HN(4jKy)Cop|@l9Zi!n($=sij<ld0`&Lb=N
+z7{4~%!~-JgU4n1wx_2&MMLrKN7fXGFYVaMwU2LoJNGwZKRh98Uv9ZdJE4i!6<9_r<
+TpN{R&E_Pn+;T5r|)d|CYmZaC{
+
+delta 2038
+zcmZvde{54#6vyv<UCSEQuHDvl9b>d2t8=hQ0*v3Z-DHK4AQA>6GP-3GFk1u!#uA_`
+zSYjpOni~^H79$BtQ2x>PhXa&uU>uA50R}a5!iGBYNHi7+V}MY<=e;*2u`lU4@BI4Q
+zbNlXl=k!s2;wbNWjt3HDr_5O{re0Zz!K6J>pc#>ZfO-=Vr}<Dp=wj0)<BAXEf$Cou
+zx@Y!urd!{8OFkxrCEhG<Wx3oXxmvbUD`rzTV|mQNs)XIR+TN*q59{6rvBT)%+eO@1
+z!{>-=Mn7*A+~ndO;Wqi*kvxqh=~XRy)u3oJx!ftc7H!d^y?S(5BusujD)*U!##};#
+z`}-(2+~1ETa&9(kN$!PLS^gxQ?x9-c3hu)37stbg_K&k&;p7nt`^b3&&UnA_2wAb-
+zy%oum6tSq0b&3}Ko)R{~l{`<ul-O)pS}{PkXC4zFcKH#}`;{9o<FTJ$9r}_a+f|$V
+zk@DUY-&jiX+bDYp%VKPIUh*#aYekmT!#9c<*4Oy3=(4u(ZDPzilfNRS=T=5-`AGQ_
+z9BmJFw3u8;zM%=<rc3L>@zL<1-)+fy3T(y-vEE%v!bgm`b`J~oY=!r14GPb7;qJmE
+z2sEnkjDJ(}#+x<|`IJ(a$_|i|NM}mH<0!HA66-6Z1bc3w`0R?ztaGSCqR?5?pi)Y#
+zdni%{fYwnRDr$^SwV6?`YpAd-s`b@Htf7Zssas4w{Umo&cRm%FjWc|9b!OyL4LO#p
+z5tkA%PDG?LrHzRCzcz%FV9#V?t%+uaT|*&O{aA<n1yfl<Fm<cmr(o}@uxALiHZv=x
+zu^M#NN5s1GfcQ9-qRwuOhEzr+G3qii=4%YQ&ZsBGNiej{y|11K^(o%B(%xzbwIMU=
+z4|Qqd*GQxjVSSh`Nh|em4yfl$J8cs(cUm<QX}hCXne1Wf!tcx?y>?aE=<K0z-(v#~
+zWwvrdej#s_RNp(6PG827UH8-JW6=A@)9DoS6KEUW>0T@`ANm4%k3e6CJ_!8_^as#6
+zcwqGIcVIIk&{1fHPex39SFnhugx%qX3_5(?7*^;6nFX!3!%~&SB<;(Yl+D<)a5dxi
+zn}|Dn{Gj+0vQ7*-rtwwc0pud#c248fVgY1A)I+w54#-XNap(F;Vuag7YHEZx%WF!y
+zCCO?O*SJ#{y<TpWecr2Cyi<(ND2}Fb0$78wEvjV9+4KhE=IMChrNmaoEQir^{&JYS
+zXuW~421`Iqyr`%1?oK0PE-EUbB1595y)cFS^5W~Nd9}UJhFo4k)rQ2Cc9#Dw+2u`;
+z9_yw66#i9J!reVQfh*T>2OKY118VpaJ;}L^@rqe642jDJ3e9Mc&%3MAuO48`Ez|0)
+zQ%#JOh*as6Xln(KQeuO1YfA^?Z4{ubnX>(8&>cb{-$TvJ(Pu=iz6|ev8L6&Uv9&!D
+zMMd;km!7BeDm}gI-}EUF0Hsi?9%w^jxWwDO;-W!)DgdZnyt{ZGB{vO=USA=`!l3VG
+z&g<ka%Fb}<{BE(cyqbR|e_npa%y){@bN%LKe0u4^IGbB(-mY8Qg?C=1`M*)v2x|l{
+z3tc1fiFq{!e5h|PsN@deUAT<j6OE8eoPc~wzO^vQF&-Ni)2M4)>@e6^L?mF1Ksw|L
+zi+4)MoxSV_9uek1J0BID0T&+>#{;Wzc5Vljp|~vQ|KDt#iG9;-#S{&m0@@w&ODVfp
+h8LGg%=m^zdnD&MI7_4_fE?y<fRetV~7gVJT{{a2tvzPz?
+
+diff --git a/src/FonefiveFS.c b/src/FonefiveFS.c
+index 3ba8414..c0e5fd2 100644
+--- a/src/FonefiveFS.c
++++ b/src/FonefiveFS.c
+@@ -4,7 +4,8 @@
+ 
+ 
+ int fs_format(const char *const fname){
+-	if(fname){
++	
++	if(fname && fname != NULL && strcmp(fname,"") != 0){
+ 		printf("GOt into fs_format\n");
+ 		block_store_t* bs = block_store_create();
+ 		if(bs){
+-- 
+1.9.1
+
+
+From fa73a0736fb88905c35639cde29ef3c9ef706dfb Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Thu, 5 Nov 2015 15:30:42 -0600
+Subject: [PATCH 07/13] passed all mout test
+
+---
+ _build/FonefiveFS_tester   | Bin 18217 -> 18760 bytes
+ include/FonefiveFS_basic.h |   6 ++++--
+ src/FonefiveFS.c           |  39 +++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 41 insertions(+), 4 deletions(-)
+
+diff --git a/_build/FonefiveFS_tester b/_build/FonefiveFS_tester
+index 11a485f115ec53a7b14ef33ff7798705bf95831e..2bb389177822ed5f60ae45ae7adc23bbb7316ff2 100755
+GIT binary patch
+delta 7436
+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
+DAa8+O
+
+delta 6110
+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
+U6^E;<M0t3kXbeviuZ3^<Kh0(%7XSbN
+
+diff --git a/include/FonefiveFS_basic.h b/include/FonefiveFS_basic.h
+index e5259a8..79f90db 100644
+--- a/include/FonefiveFS_basic.h
++++ b/include/FonefiveFS_basic.h
+@@ -35,8 +35,8 @@ typedef struct iNodeTable {
+ 
+ //set up the file system structure
+ typedef struct F15FS {
+-	block_store_t *block_store;
+-	iNode_t* inodeTable;
++	block_store_t *bs;
++	iNode_t inodeTable[256];
+ } F15FS_t;
+ 
+ // It's a directory entry. Won't really be used internally
+@@ -84,6 +84,8 @@ block_ptr_t setUpDirBlock(block_store_t* bs);
+ int allocateInodeTableInBS(block_store_t* bs);
+ 
+ 
++int getiNodeTableFromBS(F15FS_t* fs);
++
+ ///
+ /// Mounts the specified file and returns an F15FS object
+ /// \param fname the file to load
+diff --git a/src/FonefiveFS.c b/src/FonefiveFS.c
+index c0e5fd2..854b308 100644
+--- a/src/FonefiveFS.c
++++ b/src/FonefiveFS.c
+@@ -101,16 +101,51 @@ int allocateInodeTableInBS(block_store_t* bs){
+ // 	return NULL;
+ // }
+ 
++
++int getiNodeTableFromBS(F15FS_t* fs){
++	if(fs){
++		size_t i = 8;
++		uint8_t buffer[1024];
++		int startingPos = 0;
++		for(i = 8; i < 41; i++){
++			startingPos = (i-8)*8;
++			if(block_store_read(fs->bs,i,&buffer,1024,0) == 1024){
++				if(memcpy(&(fs->inodeTable[startingPos]),&buffer,1024) == NULL){
++					return 0;
++				}
++			}
++			else{
++				return 0;
++			}
++		}
++		return 1;
++	}
++	return 0;
++}
++
+ ///
+ /// Mounts the specified file and returns an F15FS object
+ /// \param fname the file to load
+ /// \return An F15FS object ready to use, NULL on error
+ ///
+ F15FS_t *fs_mount(const char *const fname){
+-	F15FS_t * hey = NULL;
+-	return hey;
++	if(fname && fname != NULL && strcmp(fname,"") != 0){
++		block_store_t* bs;
++		F15FS_t* fs = malloc(sizeof(F15FS_t));
++		if(fs){
++			if((bs = block_store_import(fname)) != NULL){
++				fs->bs = bs;
++				if(getiNodeTableFromBS(fs)){
++					return fs;
++				}
++			}
++		}
++	}
++	return NULL;
+ }
+ 
++
++
+ /// Unmounts, closes, and destructs the given object,
+ ///  saving all unwritten contents (if any) to file
+ /// \param fs The F15FS file
+-- 
+1.9.1
+
+
+From 206c275aa703916e64e02aedb9c7b6bad44b012f Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Thu, 5 Nov 2015 15:43:05 -0600
+Subject: [PATCH 08/13] working on finsihed unmount
+
+---
+ include/FonefiveFS_basic.h |  1 +
+ src/FonefiveFS.c           | 35 ++++++++++++++++++++++++++++++++++-
+ 2 files changed, 35 insertions(+), 1 deletion(-)
+
+diff --git a/include/FonefiveFS_basic.h b/include/FonefiveFS_basic.h
+index 79f90db..bc2e9d6 100644
+--- a/include/FonefiveFS_basic.h
++++ b/include/FonefiveFS_basic.h
+@@ -85,6 +85,7 @@ int allocateInodeTableInBS(block_store_t* bs);
+ 
+ 
+ int getiNodeTableFromBS(F15FS_t* fs);
++int flushiNodeTableToBS(F15FS_t* fs);
+ 
+ ///
+ /// Mounts the specified file and returns an F15FS object
+diff --git a/src/FonefiveFS.c b/src/FonefiveFS.c
+index 854b308..2c1dfcd 100644
+--- a/src/FonefiveFS.c
++++ b/src/FonefiveFS.c
+@@ -101,6 +101,27 @@ int allocateInodeTableInBS(block_store_t* bs){
+ // 	return NULL;
+ // }
+ 
++int flushiNodeTableToBS(F15FS_t* fs){
++	if(fs){
++		size_t i = 8;
++		uint8_t buffer[1024];
++		int startingPos = 0;
++		for(i = 8; i < 41; i++){
++			startingPos = (i-8)*8;
++			if(memcpy(&buffer,&(fs->inodeTable[startingPos]),1024) != NULL){
++				if(block_store_write(fs->bs,i,&buffer,1024,0) == 1024){
++					return 0;
++				}
++			}
++			else{
++				return 0;
++			}
++		}
++		return 1;
++	}
++	return 0;
++
++}
+ 
+ int getiNodeTableFromBS(F15FS_t* fs){
+ 	if(fs){
+@@ -152,5 +173,17 @@ F15FS_t *fs_mount(const char *const fname){
+ /// \return 0 on success, < 0 on error
+ ///
+ int fs_unmount(F15FS_t *fs){
+-	return 0;
++	if(fs && fs->inodeTable && fs->bs){
++		if(flushiNodeTableToBS(F15FS_t* fs)){
++			block_store_flush(fs->bs);
++			if(block_store_errno() == BS_OK){
++				printf("good in the flushing\n");
++				block_store_destroy(fs->bs,BS_NO_FLUSH);
++				free(fs);
++				return 0;
++			}
++			
++		}
++	}
++	return -1;
+ }
+\ No newline at end of file
+-- 
+1.9.1
+
+
+From 012ecab9e4beda42f6b63003f228c2df90e57746 Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Thu, 5 Nov 2015 17:35:14 -0600
+Subject: [PATCH 09/13] passed all tests..still need alot of checks
+
+---
+ _build/FonefiveFS_tester | Bin 18760 -> 23197 bytes
+ src/FonefiveFS.c         |  14 +++++++++-----
+ 2 files changed, 9 insertions(+), 5 deletions(-)
+
+diff --git a/_build/FonefiveFS_tester b/_build/FonefiveFS_tester
+index 2bb389177822ed5f60ae45ae7adc23bbb7316ff2..86379bb75103236d18c1bdf08d5bd5787b4b22f0 100755
+GIT binary patch
+literal 23197
+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
+HyJr6bf!8sG
+
+literal 18760
+zcmeHPdw5jUwclqZlbj(W84@1heE^YQ$t2-rMA1n?V4?xiBq+4vFv(1kDalNn2M=2n
+z4bY|$3#||IQbF7L(bih;?X^a24G34T_1@CfB5keZ`f8%}6RUD#wdVfTe$1RXNxb#@
+z?)~mR-7shE_1kN$z4q%o_9Hh}*RHf_8dJf>E@#B;&GB$ZT){8mti;NhlX=)2X0S{k
+z4*Wbkg{X)rIw(yms!KULXa;`eHUX5|JUpW4GyyY3m4`$rzf|zZsG#vFf>o5kM+&4z
+zzMh*-9MMf_v{(9ZMpC6mEa~YpxH#x09#Qn1bWBlIJ}Mji8l}BPn+F{69wKZ7zosb3
+zQmA_^9-#Q4Nt^}s@Q9*21<VvxdY^?J`T6$-mlUj*`HfaDF6qCbvbe0IJ=C;xaY=ii
+zxIGk3Y%AVYzO;DhVs|X!UdYQ$_DOctnsq!URgZ<>$mj9+Q6Hf6#|}Aq2mkYyu@^U0
+z2j9NCWWjU4&1)DZWk{CSX=!0mhL$n$FbvJfu<u|+Y(}ktZfNKZmLZ%Zn^bL-$7KAd
+z$!6kb;CBIj7veV`zl-p*hR*<a<JWKJcAj{3(&n4*{nF!m-pT##_3NiS_}09PO=b6V
+z1@6D6^r5R>Ir8KyU;ol(XVvL~j|^vJ^>6;XfA$w|82kI0y_fu@XWH2DFW>i1;D7h;
+zuiSSp=%S|Izx7SfoMm@s&!2vq>dMxvIX@AVl|MpC0Wf0(oGN!D`R_n>B>b^aaK|Wi
+z+DDQ1j3WQ_QRHtK1uq}PP6^}<{H$TlDDppt;7H}YXcYMmMv;GM6#R1F27cC155Ta3
+z;JbLfx$N5$JZY&v<aiGIaGb!m%hc5p@5&cA^-mtqrSn-fTR+w#0YNrE-i6+M*w~bY
+ze@EK6G1tTKZ^+bMiM#Ry{<OrOk@zW>z&`_?!k<9Lu{`#O^k3ayg1{-?la_pc$MHh8
+z--6HP{^zi`ELWZ|&+4VT)&KEQ{vj#f0iHs!#D69I|5(7RjQcs6^~!wJeRn(Xe3ruw
+zN&lr8cDKYQOI+P6&r7^i;z4OYQ|3F<B7auOtLLK>XWbH?Ymt8uxPd#8wSJ}nABXyU
+z#Nt20eYL4Q(!ALhi$|hC+)$aXrg60|5R3*}L$P=;+PJ!^JrWK!`kUH=%;#(Eh=d{Q
+zkH&pI=DTu>uU^VkwfkeSU`(iwsBFr|=Wj=*{&<j?LEPFmrvagk&PX(#25pUoELzdv
+z^@(6CU8*@6v>FEzpwc$eLt`mxX=zWy+E`~I4wtDwsDkFU&At|YsGa$nDBD;(5J|*Y
+zN3f&0b35zcE)y7xMp;W|G!%}vK$T3&3hD5N!ps*8_~U*gG{s^92NVvll0+<8LWORp
+zXPHuLjwO68p>T*b`D3AGUmOLA`2uNN6Kje2S|ZU7f1F|+kwh521>@^FSA?RK)OM^j
+z7!R$91VkgPj7B;t8;}9{p**Nri&!8O_9bG$fH`yIjjA(c-kiqyDa%AyWU3miCam(R
+z2_vUfwKbJhzJ>0x#mQ(Yw$QzV`YeqLF*fYU81XdTZ8C+P;Ggu*W=SP|4NvvALFxHV
+z;f{TGVW?%W6-Xp(d?=JdPyV%%PfQ6pDaQ?@j4(KJ6Q?vj$MTrCsBuE?e)OzXL5+XH
+z=O_@gP>!oC#4*&8!7$-eaute9xVq<2TB!-AJX9z*;p$#OX&w_!d8^<x;p$#RX>}$X
+z6_E_<P5783%Gf3oo^8V0Ot`t;I!!n#J{h)|@Z2QI*bWn}?%9<56%(%7mhinMoZi_~
+z@OJ%K_x3pMEHIdN*O9oR{}@udUB`8zrZBYRR)`GE-HB`7Ob=qjw~@ra*&&3vHxN%v
+zIB<&dQR1n$3>@M77l^kL{|M)sh^HnTIK=tS5l>Awu$S}o#8Z<E?BM*B#8XoZbaK9u
+zcxs}7O`KmwJT=Wg9p@JkPfar5;rvC!Q&S9-a(*`P)C2<t=cf=)RX^b3d_M71<pYfK
+zV~D4!9ys^$&`{Z1HQm3w&fER6x9in&b&WMAj?k0Ld*UcPpu8te(0fAv#ZY{&C2!^m
+z#(IB<23Y4UJ`CdR8qD=}zqZx3@mMeH@rr+MV;?0Aoz0uMgRoxWl>E^_JLJ9HPkWEP
+zafMeq<^APg0?JR2pm*1=;_q$rc0VKZUzYkimUrhHj3vgcgJ%CtaAe~%jxB(+caKr~
+zdApV$&VxXFM$(1x>-reJnjk-PYU98cp^`U~4a7jn20Du2?Y^<!+jV0<i*FYs>g}oS
+z&-*dkc_iN2*Nc+(zxTJHA#Sn%UeuDeyLu3kgDmdt`#B~52FcJF^md=<{}A5qI<n2(
+z_bR14$y3(#i`3I3PzVcsA5!9d%IcerUidTg>@jkw!F$V}%h7|p-9J6~;m}aP+mkW3
+zh^nN!y1(qmiCt#_f@OWqiLmiGp204XB;!3`yLY_^uIs0CW$~-}rjXo1B=kH=kay3W
+zWWw9Sl`43#9;Z7m=}#qd%ZW?m_bnpD4?cn-w<x{z_H67Aco$9MPGM;2q;kt~a{2Qc
+zlO-UtD1jHnvXsEv#Zi{G^ZO)oV%K`eP=REWI{%v`-kv)NhnHl++s&(P4}9r5r=eZ4
+zc!j-ry|;_2YcNXUMO#ihvx^2!$%*Q{G)j~DC;AVe-n*-hqxd8s6J+sAA^H?$Om#2`
+zxu7$bCbH=DmAyH(_kAdgQu;9@e9LhvuBr5+w;vp(wnFL8P<AJFodHKVpV;+0;pyPO
+zeZ=>0A;;j*(9EM}?cH1uAaC;?mTb>Q$&|G{$vx4Yt9pdue(%w<Ha_ZJcF?Hnxsw}0
+zY>!v>?&1CG3DF;(@pk{Be?P3^CYs3QJ>|{$g3LzEQ+`zQM2qrvH=>qAjXAiCwWIv;
+zue_>E9VLDA`NZg3pBjCu`}CcR^)Dq4x~tD2{Tz#zQ#!R%AK6O|#aV#Qd3)Aj5W092
+z5*=uA-2O9(NBdFbiZO;EKge0pVf*T+r{}>Q2m9$!()U%uKKwvpLJ$tS`tG5GKKKOF
+z%e_60w{r|u(R&!^<Ex<f#3{s{vSa21P6~TV$kQIjQxGJ_w}9>62g`lrQGcA9+D4|n
+z%}vdM?&CEhn|cFk5R6GvpCMB#$<z`k_0Lb4+Q3aMB~w?8Z0eveRU}QF1>652I+-Zo
+zwdNaLf}G3Z7QJL~?Z_5a3yY`6igMmg7QagtA<p{8kVRQ%PeP=k_bRgW*^zB&!q!)%
+ztxB@Bk!<mTK1DYjX)D5QHIc1`k!?K+Jrv+_Y3n@L{&5@=_v`^!lg4IqV_V7C)gv2g
+z6UN@j7KNnp^&kH)RY<z0<MvPW^#UX+dV9#!`jJgd7p5MRrmiDX+hIy{Qqkqql|OGQ
+zuBqrAs<^tQ`+UW^n(p6JG}i8!dssK{NZnIRw4rwXYh}Op9{ro0-hlewKToyvR(wX@
+zOpGIh+U_@MyU(wHjiK=`db^Hk-b>z0yg@HUpWj$<ZN<il>neQ5T3Xyn{@r5?&s4li
+z$yX;$zMHRF8#nO56ERZXBK*_CXrRwVql$lT1&r26B*0oDaU<RqjU-yz4Ef0rii9~#
+zUwFZQk?3SKVFTYViOxVM%0B@amyAQu*cyqFPzVx<Kocc!y9C7Bf*drqhT?4o%2%HV
+zheP33!=H#p_{Y-%BNmDqP57KM{NaER4YvEYEigjyd9czHH2hoJLhV7f+szuQ8yXvo
+zs<o@@YO5QoIlHo^w%XlNwxlJN`s6B_O@gVE+4GI%%ME&b@KDkg=?Ip@{2e8c82<t;
+zSy{GZWkYdIM`wGmBN&eRsYoT{8o#)k+1%KIxq)Q{eJw|MdFRcI%`@n`GZ+|S%6QGX
+z+S>WXWt3O4(u-yze}aUI{Ije`2*N9hkgR}7)C9_pxT2PrEJ5nSPFf(l+En|c)N|+s
+z@$7p;L#IH`;c0jX^bhD<gP@)0u!VR~E=2G3fR<vU(i`*VackNO`aI|(ps#?Q0v(Hc
+z6wOy}$4H@h-J3y6L3e@Hf$jzEq-Qs77iwO7JXi|a4fRah=F+B)&C>U3SuVn9V$%zs
+zE+PRLMwS=zuq3aeEH3!Ka$PHP3$M(}-m33lS4_F|qD2?XCKDvH0>3}NE}zS)$aU?u
+zRpn&bZb#0-P5|k3sDr0LnM(I|*=>(<5kmRA?`@!OK#tEHndRO|m-|=99YJ04xiFKQ
+zeTJ44B)?w7?-=Tu&*3RKTb#>K`bYRpLmTk#CzXDsFhS`w_mhqE`G_a|4y4jAL;856
+z^Eoi3Z*Q}a1nFOkbU)gVe|M_%ij@ABkiO~@(hnfLc$9Ri^PeES5a~hkuQJ#5HCuIV
+z;qCV7Tw_m0b#BpZ4sUMh?o4lPc~{ozTu*y$c|~q%MQ%}Lu2Gp=2>HrfozL&nw7ds)
+zs4M*={G$f`Q3L<~HBgu9;ZBrFsyxDw=fO(fmN>tcA^rs^FjnGfeIiHlYTbj@-zcbc
+z)~SLOYk7#vWm+~keG^Zi`x*uM5To$^$3qdK`)wW~$u-}-S%Oz{Zk=|)k0Bw1puE|r
+zxv@e4vk8(aVpkDNhfq-Ws2#F=>iMPS@FsC7#?FlK@R-8)N?!Txm2yr=RsMLC^77P4
+zd3>pHUe)(G$)9%$`%?Y?oTzndYesj;b*Bd<{jsFaNP1e**CjnKX=aY_f1;!pO1f0i
+zm6Bd9X^W&=B;75k)t^;WRm+T`bxoLSPZ*2c<?hAB3lp3xyQyrkyL9n<fwEzO3yaGx
+zk&;4YAzJ|JqQOP8sYSDgRj;z-{v)(@2FG-5F<MOfH*}xh0vSoswhof^=gaA;XH`Mc
+zuIV$7o!yo-kGPC1F9$OX4m#-LFeAf(w|OWydSKsn7X&i8LP)TMDY}!Qu+|3R&@=Tr
+ziPbXa!9dngT+TS&p9VtT>dbMz30J1y2Eg&**C?t#N%%(;cj;5$x8rXVFVw>%^D)H@
+zeGAD9QM|~x37I;WMog)5kQj|K<<9#_!^Rnp^I|fU!5OdfdnD%IOr7&`GM34i_0E4G
+zM%QR7#3tugNo<VvIWTR`TZtK~H9?@$Np0b9aVG9`Qa<@wC$MeKlc*ENL~SLQ9nK=k
+zbduHx=2j=!bQEfvK)Rf?#_E`+(W~oMoH>*-SNkHw_BvlA#;xrEv)|cDObKTWIo~Iy
+zlrx8&9}!c=nMa&<@@=7344q!*c*=A!_w9)DMiN`9Z2>vX#{35*-J4YduF!Fa9MVsd
+z!2J|ux}D+=P;qs=pB#L!39yT0>T`f)>IcAOQ+txzV|OD$D77X>cPq32C^cyg$=Xhn
+zROuBI^#IIVv>H+Lp54@YP9mN)@p0g}_n{DZ8Cgqafw~?7&Rq0%>vFAz*M_SP*IBL~
+zKytQ=KB4Bgo`B#5uD2jF*L5B6Bg}ONn4`=!1}RT7*EW!2%th<*J2Y1w$SwFLT>#On
+zOP|6uFGJ6+pxhj=t+|#0lIux&&H~`Jp8?S)?j!t*5YZ<cKs4)*Ftk{o{AEb!%jhzN
+zj4=HIx=bZFLsZD!i1KQ3Gg}WOPHO^^^*r=<>N9?gxK4GZ&!i~R$*yjYQmOtJ;j>;r
+zJRodQl-nv{+2qB$iqB%UYVvLN13<<-NQQRmbLRlcZ;CPfLW(h+CYtqm^GOhm^Dqo#
+zlZ8tFaH~Vib`ND)^fAzaGJRQ)L^H{wONDpulZDG_kzC4buaNBW6_6=dpnLX_>^`LE
+z733Pza|oy;Sk}b-i1K{qG1~+Ztm*_Zo@MCO)F(yJSCSMei7u-MUcj=+jhFD_$_32!
+zE%M0w5ReIvBC2IJL0a9~_{SG`?LaveQ6^H|YMB(Z?OQ+T0r?iu3IPg*s2yz#)sAf+
+z?o~M?Jz)b_ZR$1f(7FjhJJ16|lSyeRDcSe+Zk_TGxiFplv+p~#b&3mSwV9-C-}l^B
+zHsK}W7m$b6Edknr0cCB0w06@Zo67@H#=g(5@G!)*5*pL?eJ5|4GJ#5SF*O?Ux(U9v
+zlCM||X3V-VLOXDECVa(rz80bw`8tV>^KiRo_*GcnEUj;yV!*D}ek~V9Nv?&E)<L%I
+z`;Kp=QBFN2n?^zhWTx&$%8;E+=%WhgqCBjdMYIFY0u^o0rP{#A_dt;`x&u()ZLmwW
+zK_U6On{3(kZNiu5I&$e=^1-?>Lpv}CDPF#Ng?t;Eemw+j7m>Jie~NZs#+Tu}t<t(-
+zLp$KX(~|PFtx<Mn-btbxt$Q!D12exx2~E~b7D)JKN@%g}rqB*d`6isns-gRt(|+98
+z1P(W{6OeX(mu|Ag&8R)+_bAG=aoXJ6f^2*4)ZB4eewGXGaJGrep1Umj((IZ7G{Xff
+zJNt5^V@Sy;o<WX0plBT;B$ZX5*>khANl62%=OitZL(C~zM@<2-W0ZX~tftizkjB_q
+ztfrs@i8&V{f}3&yEL?^c<h%?mW!F^%bXpE>H#|Rw$}b-o=)z;lprF8{GagJ*aDrRA
+zVzMaQyva2MRANuzU6qr`g^7-&(>A=3PRd5r<Wn;(P8uhCGQ?zF#7;q~tSn-u@^WB^
+zO&ckvyG2gZ-As95@&SACQaWj#%}mJ)9Cpx(shqEvOjX79qCstZ7mucWn47~i1ZraZ
+z|1?v6Zg)v6+RQ$Mirgm>YAR`MZZ5$#N8i%La?fLHI8lOE(UMTOxjhjG3Q5Tfmuw1Q
+zXA9qSk|r;9pd_JBF?}h@QUap1*-C5-Y6)!#u57@(ChCT!IT1tMVY5jf*y3(u7&!6m
+zoxvEQ7&O@V5{e*-R^{7K;v#O^1Ox#0g_L0*-<tvy-G@}9Hb#O?Ju)W!gxNB*%y_0g
+z>);ECgYO>FOAc<|P^P>8bm*Y|>_J;e!NJ`d^q=YO*I#(}S^c#rm%cUg!L3{MxwZub
+zTefbn&(Kfm?$=&;_~5(xRklS1Hc!De`?k0gv}d2*vO)jFlPZ_lFC_HVAH2JHgWc)w
+z+K^$h-+r^Z_K@9m-|MAc<}#-<ZOg}x5S#FVG@+7TO$t(M0#E%*660pdYRhU%SKF}n
+zMQfpo^u?L4rQP2eTgWhV&gbCkA~A-U=4c4JuR7cP&B3-vJ2ok?$_C$>wT-@-HNJHX
+z)!3JXEkOP)LB1I&)`ksEG@;L8p&Q61-_eDMbh1SdWrZzIw4VujeAAV$Gai+Bvk>h7
+z@^u8U!HDlN!WN>K5Bs9R5yt1gDetvcF<*xtQ~6Qa6t>n!8?bohrq)Kz33yQsI?CoE
+zo|DK=Y(Z<mJbBpP5u_~Yt3SIAv-7^yH4UpP8mqj7T~krNhG<<yeZ^|p?`u?vPc@^s
+zBc2Ecm$wGP!Dy%%tUub^wp{EaHi}z~;<cqlG5Xl@=1VRyid*=eu;R`r))ktu$U(i2
+zc79<qT&uw^RDH;Z)&_hPRaMmu4b&t)Q9Lvg-<p-2x=&8bGhcHe>T8a)Cpy9`wQURg
+z%;NqPeCt>z8UcoDYt~%lt6pD&bqW>^ZpCgd=8H8Yu;~o#>x;CsU;%|iBat|5{bGr5
+zEYuptx=C}JKT6F3|Ko`mTTxSAUDdd@egm)RMGL6|p*2Lyz##PmGD;<>XsoEk=CDqG
+zV4<nqF#@skFA=7#V+&aeul!_#Qm5ceF73h;Z)BL09glYqh>2c6wI#a`Fj5K!G17RZ
+zWv2S04!xa{$(u!jEEZ%*ves+Xat+=O(FGGNE$H^5ZzrpRT8a7$@6o*7(vwo#+fqH9
+z_UrkmhL<je3n<F!>eW<(*s6!lhb@w*V+;)%C_)ZWre4kKj+USjopk%+U3JY`-kzW4
+zQJ@x#$S<l^ZmPa|)w<e>dMZ*o3X8QKw0*KQL{n{v(`HT8Lnx6Ce4fZVoG4Vyn#St-
+zHE8kwc{8CXoM<qZN$ynir)?H&O5@Tu5(apq(E=655pAm^w`hdGm%sDzh)M{x2N-k5
+zws)X}pz)}nZ7PPw4n{kfJB&f=uBfajj{93Bho`5T8z>G1n47pZKQ@561KY!}Cn)+d
+zPuYTd7A;wt86VPUHIWo#tg}7N+<XJ2J5HV0&3AITqY>)z%pGj=wM22J^0ft^t2m+I
+z^GBop?LtGvzt9XZSoe2?nvrz`261uoT!ckzDP`{FNCzz}LNwTvXoa#r+=@HDWJBSW
+zh>H80nxeriio@D#P{mPSc$@iO2sF=1FGlqKOQGE6A(A|2qvlyThzrS@!yGVpvM2Q$
+zZ60u`b1VkuQWv~Kq=hnYX8pL$!_(u^p$j;dx>)sBAPGx#5#|4Wn}-YUm%#I!!&|zf
+zG-+fGYrx<&IqAQeAMV6^4+TSJh<6%ZcBPN^TOMf30g0;o)qL|_Ding6Ul!c(`nwJZ
+zG`Fkt)qL)GIU&4WDk}e#oT8hNPIJYISM$Yna)R3<^{xI(nB9N~6;bJ{`RTn<-zx=G
+z{?_vEwCJn(?lV$<hwLz<Pip{H{o8?&2>C}rtq-gxVFWerFF4_=iWBX|&#b>g&MWVb
+z`h3mUq(IXH6coJ!akIYKr@t3pRuuA;!-7rfNtWG<h*@8)XMB5tkdV!&#CcsO8AJ}@
+zNBXM%)j5hsr2aWdGzE)0>@d>I`s&=5IuAzeV-B)AC!rrBX4Wq%^zgJI*}-d-V^YJK
+z{}JH$9_C|!MAZ6?Iv-}0xAM<HC(op>)^`S{leJWT5!`V83=+tHIb8AKxJii45X73F
+zmHz|8sP8F#wZ5Uw@2UD%{Zr|y{_{F?&H1bS=z}vqIe%s6O^ZG=HVH*Tko|%ruS!qR
+z_mE=Ff4|h<ZwM9Tr!t`Q6#rL52vg;MMCu<lgoNw{g2B~lZwMIWUz(H<5v8wYnN%{#
+zQczS!M8!plxV~=)YPD;XoivL6+*v~ZF?k;r-0-|;UfODtWM3>28qZl0Ei6A*WW`AH
+z@I^xZ4$Jtl$}R^$n6;dj6$||=b>kIm(pP1NHa@DhlOmi{Efkzr3CctZ%k5cQ<dSul
+zNd<WWn+<jeeyabdenH72<zH7V^l3539IW}9)2wkjyeqePtT6JkCC|m06YWTek0_s!
+zTo+E4cQEz5PscNvdXA^#Sxh~j({Y`t=WaUgWa@dEj*m&M3#a45&+k#X9Zyd6TuYbF
+zNuIk-$A_OM6n0YQ^wQ;B$#cW$_&BDX2kCfz@;;xA7bMr`)A8}C`?4tkbJxl9(Iyz>
+zoygREG#$r`th_&^<HOI(QM%o9UM^kU`c@%Q?Tp@rhX;G|RC#)uoymt(I*fef!)F*S
+z9||U%#zO{shi;>3fnHxU+7+dqXEK%MHf=bscqGRo5kcG%KWD)!ByQcmaSd<{^>akl
+zry7?n93S3}d!!w;9|SB9_u#7G1f_cJOPKW{GE%wvxcp?MrsCE6$Y}L&lFN@{ol`uB
+zr2;Kzj#NJ+F;c!SbJhG|{qtRJr;r`8_A5A~jnF@xyrPDecN&*39CpsOh~vZi?d8Bn
+zI(NE;<J{S_iyyd=h6v_H;3J(2-N)sJj|<w%NBLS;O1>v?>za!=4?H~MpK<x&_>0nx
+zn%n(`6nP!E3+GztIFUKf%5lCKkZ}zUrF^_us`qInlErbwr6?_qQ@N~5V6@OoxOFLU
+znZ&Kjc56nl-#iL_>nQl0z^T0IeN1`!z$o%R8U;TI+)&CU`obvkZvY?ZJoX2p$d9#)
+z`mvs8p2l%ghB8_@3cf<xu`bQk10U%eI4#gpyQuFimD6<+w=NU5b6iQK=#A38wO@5h
+zJJw~(J0xyhpS%aSkusZ%{XoiF7mtsRBL5PXAO0MF6*!I4USkutt=^+pb2J`{W8xFb
+zE<WFtRrQ!<#Dutyr4DfW;vK$bI>H@e>R7f3!ZG29ueCkW<Zt%{FwGtF`4ih1=9sX5
+zJsu3WmtJx)&AyHx#Lq2@xhu^0Vz!ov*{(pMqhmW%Oq`D<$<jpSN>Osvz~@_u>H2D4
+z^_mrQuAG-d#nY5&Vm1(q_}Z|$pAMw2*s!KzbxjpelNevk0EDya%HpcpwUrgMzO^e?
+zHdHtI8Y?O>X%7j0dOLXto1gpkc+`PrI=lQyr{Tp+X1Y9|?H2i)CrYhHy6N0`x}s_R
+zSgg0CcKxd}<z^9e>Rp^3x1L~6nO>Y)cldj!dHG)gNS)9hcEmkpoGQrdlsvDWcJ$nw
+z&JXy@qx0!jEPq%)oVibl;AlCY#!ek!H=C8G{Y|aOCuPNn{ge^%Rvi0J$IR`7QN$<z
+xhqoZ6y7_dqs2%>-1k7jrQ>Q89ve^iK8ex<rF5bn|&`kex3%nd+;VIqc{{|G{jzj<e
+
+diff --git a/src/FonefiveFS.c b/src/FonefiveFS.c
+index 2c1dfcd..00d9f8c 100644
+--- a/src/FonefiveFS.c
++++ b/src/FonefiveFS.c
+@@ -103,13 +103,14 @@ int allocateInodeTableInBS(block_store_t* bs){
+ 
+ int flushiNodeTableToBS(F15FS_t* fs){
+ 	if(fs){
++		printf("Got params fint\n");
+ 		size_t i = 8;
+ 		uint8_t buffer[1024];
+ 		int startingPos = 0;
+ 		for(i = 8; i < 41; i++){
+ 			startingPos = (i-8)*8;
+ 			if(memcpy(&buffer,&(fs->inodeTable[startingPos]),1024) != NULL){
+-				if(block_store_write(fs->bs,i,&buffer,1024,0) == 1024){
++				if(block_store_write(fs->bs,i,&buffer,1024,0) != 1024){
+ 					return 0;
+ 				}
+ 			}
+@@ -127,11 +128,11 @@ int getiNodeTableFromBS(F15FS_t* fs){
+ 	if(fs){
+ 		size_t i = 8;
+ 		uint8_t buffer[1024];
+-		int startingPos = 0;
++		//int startingPos = 0;
+ 		for(i = 8; i < 41; i++){
+-			startingPos = (i-8)*8;
++			//startingPos = (i-8)*8;
+ 			if(block_store_read(fs->bs,i,&buffer,1024,0) == 1024){
+-				if(memcpy(&(fs->inodeTable[startingPos]),&buffer,1024) == NULL){
++				if(memcpy(&(fs->inodeTable),&buffer,1024) == NULL){
+ 					return 0;
+ 				}
+ 			}
+@@ -173,8 +174,11 @@ F15FS_t *fs_mount(const char *const fname){
+ /// \return 0 on success, < 0 on error
+ ///
+ int fs_unmount(F15FS_t *fs){
++	printf("got to unmount\n");
+ 	if(fs && fs->inodeTable && fs->bs){
+-		if(flushiNodeTableToBS(F15FS_t* fs)){
++		printf("Got into file checking\n");
++		if(flushiNodeTableToBS(fs)){
++			printf("Good after flushinodetable\n");
+ 			block_store_flush(fs->bs);
+ 			if(block_store_errno() == BS_OK){
+ 				printf("good in the flushing\n");
+-- 
+1.9.1
+
+
+From 64e5379e11ffaae0eb6ac0bd7c4f48a247540afd Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Sun, 8 Nov 2015 14:53:33 -0600
+Subject: [PATCH 10/13] finally fixed seg fault
+
+---
+ _build/FonefiveFS_tester   | Bin 23197 -> 23337 bytes
+ include/FonefiveFS_basic.h |   2 +-
+ src/FonefiveFS.c           |  23 ++++++++++++-----------
+ src/test.c                 |  33 +++++++++++++++++++++++++++++++++
+ test/test.c                |  19 +++++++++++++++++--
+ 5 files changed, 63 insertions(+), 14 deletions(-)
+ create mode 100644 src/test.c
+
+diff --git a/_build/FonefiveFS_tester b/_build/FonefiveFS_tester
+index 86379bb75103236d18c1bdf08d5bd5787b4b22f0..de2cd76a67961a0fb8f195e0d6b28d12fd5277bf 100755
+GIT binary patch
+delta 5501
+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
+
+delta 5023
+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
+A82|tP
+
+diff --git a/include/FonefiveFS_basic.h b/include/FonefiveFS_basic.h
+index bc2e9d6..1010a96 100644
+--- a/include/FonefiveFS_basic.h
++++ b/include/FonefiveFS_basic.h
+@@ -24,7 +24,7 @@ typedef uint32_t block_ptr_t;
+ 
+ typedef struct metaData{
+     ftype_t filetype;
+-	char placeholder[47];
++	char placeholder[43];
+ } inode_meta_data_t;
+ 
+ typedef struct iNodeTable {
+diff --git a/src/FonefiveFS.c b/src/FonefiveFS.c
+index 00d9f8c..55c82b8 100644
+--- a/src/FonefiveFS.c
++++ b/src/FonefiveFS.c
+@@ -102,14 +102,15 @@ int allocateInodeTableInBS(block_store_t* bs){
+ // }
+ 
+ int flushiNodeTableToBS(F15FS_t* fs){
+-	if(fs){
++	if(fs != NULL && fs->bs != NULL){
+ 		printf("Got params fint\n");
+ 		size_t i = 8;
+-		uint8_t buffer[1024];
++		//fs->bs = block_store_import("TESTFILE.f15fs");
++		char buffer[1024];
+ 		int startingPos = 0;
+ 		for(i = 8; i < 41; i++){
+ 			startingPos = (i-8)*8;
+-			if(memcpy(&buffer,&(fs->inodeTable[startingPos]),1024) != NULL){
++			if(memcpy(&buffer,(fs->inodeTable+startingPos),1024) != NULL){
+ 				if(block_store_write(fs->bs,i,&buffer,1024,0) != 1024){
+ 					return 0;
+ 				}
+@@ -118,6 +119,7 @@ int flushiNodeTableToBS(F15FS_t* fs){
+ 				return 0;
+ 			}
+ 		}
++		printf("got through fint\n");
+ 		return 1;
+ 	}
+ 	return 0;
+@@ -126,13 +128,14 @@ int flushiNodeTableToBS(F15FS_t* fs){
+ 
+ int getiNodeTableFromBS(F15FS_t* fs){
+ 	if(fs){
++		printf("gettting n table out\n");
+ 		size_t i = 8;
+ 		uint8_t buffer[1024];
+-		//int startingPos = 0;
+-		for(i = 8; i < 41; i++){
+-			//startingPos = (i-8)*8;
++		int startingPos = 0;
++		for(i = 8; i < 40; i++){
++			startingPos = (i-8)*8;
+ 			if(block_store_read(fs->bs,i,&buffer,1024,0) == 1024){
+-				if(memcpy(&(fs->inodeTable),&buffer,1024) == NULL){
++				if(memcpy((fs->inodeTable+startingPos),&buffer,1024) == NULL){
+ 					return 0;
+ 				}
+ 			}
+@@ -152,11 +155,9 @@ int getiNodeTableFromBS(F15FS_t* fs){
+ ///
+ F15FS_t *fs_mount(const char *const fname){
+ 	if(fname && fname != NULL && strcmp(fname,"") != 0){
+-		block_store_t* bs;
+-		F15FS_t* fs = malloc(sizeof(F15FS_t));
++		F15FS_t* fs = (F15FS_t*)malloc(sizeof(F15FS_t));
+ 		if(fs){
+-			if((bs = block_store_import(fname)) != NULL){
+-				fs->bs = bs;
++			if((fs->bs = block_store_import(fname)) != NULL){
+ 				if(getiNodeTableFromBS(fs)){
+ 					return fs;
+ 				}
+diff --git a/src/test.c b/src/test.c
+new file mode 100644
+index 0000000..fc1fb77
+--- /dev/null
++++ b/src/test.c
+@@ -0,0 +1,33 @@
++#include <stdio.h>
++#include <stdint.h>
++#include <string.h>
++
++int main(){
++
++	// typedef struct hey {
++	// 	char test;
++	// 	char ha;
++	// }hey_t;
++
++	// hey_t boy[20];
++
++	// boy[10].test = 'e';
++	// boy[10].ha = 'h';
++
++	// uint8_t buffer[8];
++
++	// memcpy(&buffer,boy+8,8);
++
++	// hey_t temp[4];
++
++	// memcpy(temp,&buffer,8);
++
++	// printf("%c;;",temp[0].test);
++
++	int* test = NULL;
++	if(test){
++		printf("got it");
++	}
++
++	return 0;
++}
+\ No newline at end of file
+diff --git a/test/test.c b/test/test.c
+index c5c0351..ad9d315 100644
+--- a/test/test.c
++++ b/test/test.c
+@@ -43,11 +43,11 @@ int main() {
+ 
+     puts("Running autotests, sit back and relax, it'll be awhile...");
+ 
+-    basic_tests_a();
++    //basic_tests_a();
+ 
+     //puts("A tests passed...");
+ 
+-    //basic_tests_b();
++    basic_tests_b();
+ 
+     //puts("B tests passed...");
+ 
+@@ -92,6 +92,21 @@ void basic_tests_a() {
+ 
+ void basic_tests_b() {
+ 
++    assert(fs_format("TESTFILE.f15fs") == 0);
++
++    // MOUNT 1
++    F15FS_t *fs = fs_mount("TESTFILE.f15fs");
++    assert(fs);
++
++    fs->inodeTable[1].fname[0] = 't';
++
++    printf("%c::::first time\n",fs->inodeTable[1].fname[0]);
++
++    assert(fs_unmount(fs) == 0);
++
++    fs = fs_mount("TESTFILE.f15fs");
++
++    printf("%c::::second  time\n",fs->inodeTable[1].fname[0]);
+ }
+ 
+ 
+-- 
+1.9.1
+
+
+From ee3db88ff9c354b2a4d97729a42afb19653a568d Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Sun, 8 Nov 2015 15:11:55 -0600
+Subject: [PATCH 11/13] allot of comments
+
+---
+ include/FonefiveFS_basic.h |  24 ++++++++-
+ src/FonefiveFS.c           | 124 +++++++++++++++++++++------------------------
+ 2 files changed, 81 insertions(+), 67 deletions(-)
+
+diff --git a/include/FonefiveFS_basic.h b/include/FonefiveFS_basic.h
+index 1010a96..ee4bdd3 100644
+--- a/include/FonefiveFS_basic.h
++++ b/include/FonefiveFS_basic.h
+@@ -79,12 +79,32 @@ typedef struct {
+ ///
+ int fs_format(const char *const fname);
+ 
+-
++///
++/// sets up a block as a new dir
++/// \param bs The blockstore to set it up on
++/// \return the pos of the new dir, <0 for erros
++///
+ block_ptr_t setUpDirBlock(block_store_t* bs);
+-int allocateInodeTableInBS(block_store_t* bs);
+ 
++///
++/// allocates room for the inodetable in the bs passed in
++/// \param bs The block store to be allocated 
++/// \return <=0 for errors otherwiase success
++///
++int allocateInodeTableInBS(block_store_t* bs);
+ 
++///
++/// pulls the inode table from bs into memory
++/// \param fs the filesystem to pull the inodetable into
++/// \return >0 for success otherwise erros
++///
+ int getiNodeTableFromBS(F15FS_t* fs);
++
++///
++/// flushed the inodetable to the blocksotre of the fs
++/// \param fs the filesytsme to flush the inodetable from
++/// \return >0 for success otherwise erros
++///
+ int flushiNodeTableToBS(F15FS_t* fs);
+ 
+ ///
+diff --git a/src/FonefiveFS.c b/src/FonefiveFS.c
+index 55c82b8..e1a9bbb 100644
+--- a/src/FonefiveFS.c
++++ b/src/FonefiveFS.c
+@@ -4,17 +4,19 @@
+ 
+ 
+ int fs_format(const char *const fname){
+-	
++	//param check
+ 	if(fname && fname != NULL && strcmp(fname,"") != 0){
+-		printf("GOt into fs_format\n");
++		//create the blockstore
+ 		block_store_t* bs = block_store_create();
+ 		if(bs){
+-			printf("Block Store Created good\n");
++			//use util funt o allocate all the spaces needed in it. 
++			//really just to make sure we set the front blocks to used
++			//in the bitmap for the inode table so they can't be allocated as data blcoks
+ 			if(allocateInodeTableInBS(bs) >= 0){
+-				printf("got through allocation\n");
++                
+                 //write the block store to the file
+                 block_store_link(bs, fname);
+-                printf("got linked up\n");
++               
+                 return 0;
+             }
+ 
+@@ -25,25 +27,34 @@ int fs_format(const char *const fname){
+ 
+ 
+ block_ptr_t setUpDirBlock(block_store_t* bs){
+-
+-    dir_block_t newDir;
+-    newDir.metaData.size = 0;
+-    block_ptr_t dirBlockPos;
+-    printf("In setupdirblock\n");
+-    if((dirBlockPos = block_store_allocate(bs))){
+-    	printf("alloction worked in sudb\n");
+-    	if(block_store_write(bs, dirBlockPos, &newDir, 1024, 0) == 1024){
+-    		printf("all good in the sudb with \n");
+-    		return dirBlockPos;
+-    	}
+-     
+-    }
++	//param check
++	if(bs){
++		//declare the new dir
++	    dir_block_t newDir;
++
++	    //set the size of its contents to zero
++	    newDir.metaData.size = 0;
++
++	    //declare it pos
++	    block_ptr_t dirBlockPos;
++	    
++	    //get the next free block in the blockstore
++	    if((dirBlockPos = block_store_allocate(bs))){
++	    	//write the data of the dir to the block and get teh pos to put in the inode table
++	    	if(block_store_write(bs, dirBlockPos, &newDir, 1024, 0) == 1024){
++	    		return dirBlockPos;
++	    	}
++	     
++	    }
++	}
+     return -1;
+ }
+ 
+ int allocateInodeTableInBS(block_store_t* bs){
+-
++	//param check, 
+     if(bs){
++		
++		//declare i because c just isn't as cool as c++ with declaring in the loop
+ 		size_t i = 0;
+         //allocate the room for the inode table
+ 		for(i=8; i<41; i++){
+@@ -52,7 +63,9 @@ int allocateInodeTableInBS(block_store_t* bs){
+ 			}
+ 		}
+ 
++		//create a root inode
+ 		iNode_t rootNode;
++
+         //set root filename as '/'
+ 		rootNode.fname[0] = '/';
+ 
+@@ -74,43 +87,23 @@ int allocateInodeTableInBS(block_store_t* bs){
+ 	return -1;
+ }
+ 
+-// iNode_t* createInodeTable(block_store_t* bs){
+-// 	iNode_t* iNodeTable = malloc(sizeof(iNodeTable_t)*256);
+-
+-// 	if(iNodeTable){
+-// 		iNodeTable[0].fname = "/";
+-// 		iNodeTable[0].data_ptrs[0] = 8;
+-// 		return iNodeTable;
+-
+-// 		// for(i = 8; i < 41; i++){
+-// 		// 	if(block_store_request(bs,i)){
+-// 		// 		iNode_t buffer[8];
+-// 		// 		int startingPos = (i-8)*8;
+-// 		// 		memcpy(buffer,iNodeTable[startingPos],sizeof(iNode_t)*8);
+-// 		// 		if(!write_to_back_store(buffer,i)){
+-// 		// 			printf("Failed to write to backing store for inode Creatation")
+-// 		// 		}
+-// 		// 	}else{
+-// 		// 		printf("Could not allocate the needed inodeTable\n");
+-// 		// 		return NULL;
+-// 		// 	}
+-// 		// }
+-
+-
+-// 	}
+-// 	return NULL;
+-// }
+ 
+ int flushiNodeTableToBS(F15FS_t* fs){
+-	if(fs != NULL && fs->bs != NULL){
+-		printf("Got params fint\n");
++	//I'm really lovin all these param checks 
++	if(fs && fs->bs != NULL){
++		//I think size_t is some cool stuff, you know causes it looks special
+ 		size_t i = 8;
+-		//fs->bs = block_store_import("TESTFILE.f15fs");
++		//another kilobyte of fun 
+ 		char buffer[1024];
++		//index mapping var to go from i to the correct index of the inodetable
+ 		int startingPos = 0;
+ 		for(i = 8; i < 41; i++){
++			//increment the mapping var
+ 			startingPos = (i-8)*8;
++			//take the memory to a buffer before we write to the table in casue of
++			// some funny bussiness in the blockstore
+ 			if(memcpy(&buffer,(fs->inodeTable+startingPos),1024) != NULL){
++				//write our stuff to the block store 
+ 				if(block_store_write(fs->bs,i,&buffer,1024,0) != 1024){
+ 					return 0;
+ 				}
+@@ -119,7 +112,6 @@ int flushiNodeTableToBS(F15FS_t* fs){
+ 				return 0;
+ 			}
+ 		}
+-		printf("got through fint\n");
+ 		return 1;
+ 	}
+ 	return 0;
+@@ -127,14 +119,20 @@ int flushiNodeTableToBS(F15FS_t* fs){
+ }
+ 
+ int getiNodeTableFromBS(F15FS_t* fs){
++	//usual param checks 
+ 	if(fs){
+-		printf("gettting n table out\n");
++		//starting at the 8th block in the blockstore
+ 		size_t i = 8;
++		//set up the buffer to be 1 kilobyte
+ 		uint8_t buffer[1024];
++		//create a maping var to get the index of the inodetable
+ 		int startingPos = 0;
+ 		for(i = 8; i < 40; i++){
++			//increment the index mapper
+ 			startingPos = (i-8)*8;
++			//reak a block from the bs
+ 			if(block_store_read(fs->bs,i,&buffer,1024,0) == 1024){
++				//put the contents into the fs inode table
+ 				if(memcpy((fs->inodeTable+startingPos),&buffer,1024) == NULL){
+ 					return 0;
+ 				}
+@@ -148,16 +146,16 @@ int getiNodeTableFromBS(F15FS_t* fs){
+ 	return 0;
+ }
+ 
+-///
+-/// Mounts the specified file and returns an F15FS object
+-/// \param fname the file to load
+-/// \return An F15FS object ready to use, NULL on error
+-///
++
+ F15FS_t *fs_mount(const char *const fname){
+-	if(fname && fname != NULL && strcmp(fname,"") != 0){
++	//check params, having to check for weird things
++	if(fname && strcmp(fname,"") != 0){
++		//create the filesytem struct
+ 		F15FS_t* fs = (F15FS_t*)malloc(sizeof(F15FS_t));
+ 		if(fs){
++			//import the blockstore from the file
+ 			if((fs->bs = block_store_import(fname)) != NULL){
++				//pull the inode table into memory
+ 				if(getiNodeTableFromBS(fs)){
+ 					return fs;
+ 				}
+@@ -169,21 +167,17 @@ F15FS_t *fs_mount(const char *const fname){
+ 
+ 
+ 
+-/// Unmounts, closes, and destructs the given object,
+-///  saving all unwritten contents (if any) to file
+-/// \param fs The F15FS file
+-/// \return 0 on success, < 0 on error
+-///
+ int fs_unmount(F15FS_t *fs){
+-	printf("got to unmount\n");
++	//check params
+ 	if(fs && fs->inodeTable && fs->bs){
+-		printf("Got into file checking\n");
++		//flush the inode table into the blockstore
+ 		if(flushiNodeTableToBS(fs)){
+-			printf("Good after flushinodetable\n");
++			//flush the blockstore to the file
+ 			block_store_flush(fs->bs);
+ 			if(block_store_errno() == BS_OK){
+-				printf("good in the flushing\n");
++				//free the blockstore
+ 				block_store_destroy(fs->bs,BS_NO_FLUSH);
++				//free the file system pointer
+ 				free(fs);
+ 				return 0;
+ 			}
+-- 
+1.9.1
+
+
+From febc8c4cb1d0f60e5796698af6c1971902eacc8d Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Sun, 8 Nov 2015 15:14:57 -0600
+Subject: [PATCH 12/13] finished comments and test
+
+---
+ _build/FonefiveFS_tester   | Bin 23337 -> 0 bytes
+ include/FonefiveFS_basic.h |   4 +++-
+ src/test.c                 |  33 ---------------------------------
+ test/test.c                |  19 ++-----------------
+ 4 files changed, 5 insertions(+), 51 deletions(-)
+ delete mode 100755 _build/FonefiveFS_tester
+ delete mode 100644 src/test.c
+
+diff --git a/_build/FonefiveFS_tester b/_build/FonefiveFS_tester
+deleted file mode 100755
+index de2cd76a67961a0fb8f195e0d6b28d12fd5277bf..0000000000000000000000000000000000000000
+GIT binary patch
+literal 0
+HcmV?d00001
+
+literal 23337
+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
+
+diff --git a/include/FonefiveFS_basic.h b/include/FonefiveFS_basic.h
+index ee4bdd3..0a3dbf0 100644
+--- a/include/FonefiveFS_basic.h
++++ b/include/FonefiveFS_basic.h
+@@ -22,12 +22,14 @@ typedef enum {
+ typedef uint8_t inode_ptr_t;
+ typedef uint32_t block_ptr_t;
+ 
++//metadata for the inodes
+ typedef struct metaData{
+     ftype_t filetype;
+ 	char placeholder[43];
+ } inode_meta_data_t;
+ 
+-typedef struct iNodeTable {
++//the individuale inodes 
++typedef struct iNode {
+ 	char fname[FNAME_MAX+1];
+ 	inode_meta_data_t metaData;
+ 	uint32_t data_ptrs[8];
+diff --git a/src/test.c b/src/test.c
+deleted file mode 100644
+index fc1fb77..0000000
+--- a/src/test.c
++++ /dev/null
+@@ -1,33 +0,0 @@
+-#include <stdio.h>
+-#include <stdint.h>
+-#include <string.h>
+-
+-int main(){
+-
+-	// typedef struct hey {
+-	// 	char test;
+-	// 	char ha;
+-	// }hey_t;
+-
+-	// hey_t boy[20];
+-
+-	// boy[10].test = 'e';
+-	// boy[10].ha = 'h';
+-
+-	// uint8_t buffer[8];
+-
+-	// memcpy(&buffer,boy+8,8);
+-
+-	// hey_t temp[4];
+-
+-	// memcpy(temp,&buffer,8);
+-
+-	// printf("%c;;",temp[0].test);
+-
+-	int* test = NULL;
+-	if(test){
+-		printf("got it");
+-	}
+-
+-	return 0;
+-}
+\ No newline at end of file
+diff --git a/test/test.c b/test/test.c
+index ad9d315..c5c0351 100644
+--- a/test/test.c
++++ b/test/test.c
+@@ -43,11 +43,11 @@ int main() {
+ 
+     puts("Running autotests, sit back and relax, it'll be awhile...");
+ 
+-    //basic_tests_a();
++    basic_tests_a();
+ 
+     //puts("A tests passed...");
+ 
+-    basic_tests_b();
++    //basic_tests_b();
+ 
+     //puts("B tests passed...");
+ 
+@@ -92,21 +92,6 @@ void basic_tests_a() {
+ 
+ void basic_tests_b() {
+ 
+-    assert(fs_format("TESTFILE.f15fs") == 0);
+-
+-    // MOUNT 1
+-    F15FS_t *fs = fs_mount("TESTFILE.f15fs");
+-    assert(fs);
+-
+-    fs->inodeTable[1].fname[0] = 't';
+-
+-    printf("%c::::first time\n",fs->inodeTable[1].fname[0]);
+-
+-    assert(fs_unmount(fs) == 0);
+-
+-    fs = fs_mount("TESTFILE.f15fs");
+-
+-    printf("%c::::second  time\n",fs->inodeTable[1].fname[0]);
+ }
+ 
+ 
+-- 
+1.9.1
+
+
+From 9d8777891915eb061a82dde9b17f0da195b26916 Mon Sep 17 00:00:00 2001
+From: Sam Kreter <samkreter@gmail.com>
+Date: Sun, 8 Nov 2015 15:29:18 -0600
+Subject: [PATCH 13/13] added tests to make sure all good
+
+---
+ test/test.c | 31 ++++++++++++++++++++++++++++---
+ 1 file changed, 28 insertions(+), 3 deletions(-)
+
+diff --git a/test/test.c b/test/test.c
+index c5c0351..ab92385 100644
+--- a/test/test.c
++++ b/test/test.c
+@@ -45,11 +45,11 @@ int main() {
+ 
+     basic_tests_a();
+ 
+-    //puts("A tests passed...");
++    puts("A tests passed...");
+ 
+-    //basic_tests_b();
++    basic_tests_b();
+ 
+-    //puts("B tests passed...");
++    puts("B tests passed...");
+ 
+     //basic_tests_c();
+ 
+@@ -91,7 +91,32 @@ void basic_tests_a() {
+ 
+ 
+ void basic_tests_b() {
++    //test formating
++    assert(fs_format("TESTFILE.f15fs") == 0);
++
++    // test mounting
++    F15FS_t *fs = fs_mount("TESTFILE.f15fs");
++    assert(fs);
++
++    //make sure everthing saves to the block store correctly
++    fs->inodeTable[1].fname[0] = 't';
++    char testMatch = fs->inodeTable[1].fname[0];
++
++    printf("%c::::first time\n",fs->inodeTable[1].fname[0]);
++
++    //unmount to save to file
++    assert(fs_unmount(fs) == 0);
++    
++    //change the local var
++    fs->inodeTable[1].fname[0] = 'y';
++    printf("%c::::Changing local var\n",fs->inodeTable[1].fname[0]);
++    
++    //mount again
++    fs = fs_mount("TESTFILE.f15fs");
++    printf("%c::::after remount\n",fs->inodeTable[1].fname[0]);
+ 
++    //make sure what goes in comes out 
++    assert(testMatch == fs->inodeTable[1].fname[0]);
+ }
+ 
+ 
+-- 
+1.9.1
+

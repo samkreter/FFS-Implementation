@@ -62,13 +62,14 @@ typedef struct dir_rec {
 //the entry that holds the filename and inode ptr, could be a directory
 typedef struct {
     char filename[FNAME_MAX+1];
+    ftype_t ftype;
     inode_ptr_t inode;
 }dir_block_entry_t;
 
 //metadata for the directory itsself
 typedef struct {
     uint32_t size;
-    char filler[40];
+    char filler[36];
 } dir_meta_t;
 //the actuall entry put onto the block itself
 typedef struct {
@@ -118,6 +119,15 @@ int getiNodeTableFromBS(F15FS_t* fs);
 ///
 int flushiNodeTableToBS(F15FS_t* fs);
 
+
+
+int findEmptyInode(F15FS_t *const fs);
+int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t* inodeIndex);
+int freeFilePath(char** pathList);
+int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOutParams);
+int parseFilePath(const char *const filePath, char*** pathListOutput);
+int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode);
+
 ///
 /// Mounts the specified file and returns an F15FS object
 /// \param fname the file to load
@@ -148,7 +158,7 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
 /// \param records the record object to fill
 /// \return 0 on success, < 0 on error
 ///
-int fs_get_dir(const F15FS_t *const fs, const char *const fname, dir_rec_t *const records);
+int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const records);
 
 ///
 /// Writes nbytes from the given buffer to the specified file and offset
