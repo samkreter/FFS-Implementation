@@ -380,6 +380,13 @@ char** parseFilePath(const char *const filePath, char*** pathListOutput){
     return -1;
 }
 
+int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t dirInode){
+    if(fs && fname && strcmp(fname,"") != 0 && dirInode){
+        fs.inodeTable[]
+    }
+    return -1;
+}
+
 ///
 /// Creates a new file in the given F15FS object
 /// \param fs the F15FS file
@@ -391,17 +398,21 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
     //param check
     if(fs && fname && strcmp(fname,"") != 0 && ftype){
         int emptyiNodeIndex = findEmptyInode(fs);
-        char **pathList = parseFilePath(fname);
+        char **pathList = NULL;
+        search_dir_t dirInfo;
+        if(parseFilePath(fname,&pathList)){
+            if(getInodeFromPath(fs,pathList, &dirInfo) == 0){
+                //set the use byte
+                fs->inodeTable[emptyiNodeIndex].metadata.inUse = 1;
 
-        //set the use byte
-        fs->inodeTable[emptyiNodeIndex].metadata.inUse = 1;
+                //add the fname to the inode
+                strcpy(fs->inodeTable[emptyiNodeIndex].fname,fname)
 
-        //add the fname to the inode
-        strcpy(fs->inodeTable[emptyiNodeIndex].fname,fname)
-
-        if(ftype == DIRECTORY){
-            if((fs->inodeTable[emptyiNodeIndex].data_ptrs[0] = setUpDirBlock(fs->bs)) > 0){
-                return 1;
+                if(ftype == DIRECTORY){
+                    if((fs->inodeTable[emptyiNodeIndex].data_ptrs[0] = setUpDirBlock(fs->bs)) > 0){
+                        return 1;
+                    }
+                }
             }
         }
     }

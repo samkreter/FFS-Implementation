@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int parseFilePath(const char *const filePath, char*** pathListOutput);
+int parseFilePath(const char *const filePath, char** pathListOutput);
 
 int main(){
 
@@ -12,7 +12,7 @@ int main(){
 
 
     char **test = NULL;
-    if(parseFilePath(path, &test)){
+    if(parseFilePath(path, test)){
 
 
 
@@ -27,7 +27,7 @@ int main(){
     return 0;
 }
 
-int parseFilePath(const char *const filePath, char*** pathListOutput){
+int parseFilePath(const char *const filePath, char** pathListOutput){
     if(filePath && strcmp(filePath,"") != 0){
         char* nonConstFilePath = malloc(strlen(filePath)+1);
         if(!nonConstFilePath){
@@ -55,7 +55,7 @@ int parseFilePath(const char *const filePath, char*** pathListOutput){
                 if((pathList[0] = (char*)malloc(sizeof(char))) != NULL){
                     *pathList[0] = 1;
                     pathList[1] = nonConstFilePath;
-                    *pathListOutput = pathList;
+                    pathListOutput = pathList;
                     return 1;
                 }
                 free(pathList);
@@ -98,7 +98,7 @@ int parseFilePath(const char *const filePath, char*** pathListOutput){
                 i++;
             }
             free(nonConstFilePath);
-            *pathListOutput = pathList;
+            pathListOutput = pathList;
             return 1;
 
         }
