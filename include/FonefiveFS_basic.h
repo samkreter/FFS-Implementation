@@ -126,7 +126,7 @@ int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t*
 int freeFilePath(char*** pathList);
 int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOutParams);
 int parseFilePath(const char *const filePath, char*** pathListOutput);
-int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode);
+int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode, ftype_t ftype);
 
 ///
 /// Mounts the specified file and returns an F15FS object

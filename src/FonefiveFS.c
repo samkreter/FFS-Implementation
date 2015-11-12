@@ -430,8 +430,8 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
                 fs->inodeTable[emptyiNodeIndex].metaData.inUse = 1;
 
                 //add the fname to the inode
-                strcpy(fs->inodeTable[emptyiNodeIndex].fname,fname);
-                addFIleToDir(fs, pathList[listSize], emptyiNodeIndex,dirInfo.parentDir);
+                strcpy(fs->inodeTable[emptyiNodeIndex].fname,pathList[listSize]);
+                addFIleToDir(fs, pathList[listSize], emptyiNodeIndex,dirInfo.parentDir, ftype);
 
                 if(ftype == DIRECTORY){
                     if((fs->inodeTable[emptyiNodeIndex].data_ptrs[0] = setUpDirBlock(fs->bs)) > 0){

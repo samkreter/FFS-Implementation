@@ -202,9 +202,10 @@ void test_sam(){
     for(;i<size+1;i++){
         printf("the string: %s\n",pathListOutput[i]);
     }
-    search_dir_t dirInfo;
-    printf("inode path result: %d\n",getInodeFromPath(fs,pathListOutput, &dirInfo));
 
+    printf("create file result %d\n",fs_create_file(fs, filenames[0], REGULAR));
+
+    printf("filename of file: %s\n",fs->inodeTable[1].fname);
 
     assert(fs_unmount(fs) == 0);
 
