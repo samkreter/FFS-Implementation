@@ -123,7 +123,7 @@ int flushiNodeTableToBS(F15FS_t* fs);
 
 int findEmptyInode(F15FS_t *const fs);
 int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t* inodeIndex);
-int freeFilePath(char** pathList);
+int freeFilePath(char*** pathList);
 int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOutParams);
 int parseFilePath(const char *const filePath, char*** pathListOutput);
 int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode);

@@ -220,13 +220,15 @@ int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t*
     return -1;
 }
 
-int freeFilePath(char** pathList){
-    int listSize = *pathList[0] - '0';
+int freeFilePath(char*** pathList){
+    int listSize = (int)*(*pathList)[0];
     int i = 0;
     for(i = 0; i < listSize + 1; i++){
-        free(pathList[i]);
+        free((*pathList)[i]);
+        (*pathList)[i] = NULL;
     }
-    free(pathList);
+    free(*pathList);
+    *pathList = NULL;
     return 1;
 }
 
