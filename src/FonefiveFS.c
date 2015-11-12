@@ -81,7 +81,7 @@ int allocateInodeTableInBS(block_store_t* bs){
         }
 
         //write root inode to the blockstore
-        if(block_store_write(bs, 8, &rootNode, 48, 0) == 48){
+        if(block_store_write(bs, 8, &rootNode, 128, 0) == 128){
 			return 1;
 		}
 		return -11;
@@ -196,7 +196,8 @@ int findEmptyInode(F15FS_t *const fs){
     if(fs){
         int i = 0;
         for(i = 0; i < 256; i++){
-            if(fs->inodeTable[i].metaData.inUse != 1){
+            printf("inode inuse %d",(int)fs->inodeTable[i].metaData.inUse);
+            if(((int)fs->inodeTable[i].metaData.inUse) != 1){
                 return i;
             }
         }

@@ -204,9 +204,11 @@ void test_sam(){
     }
 
     freeFilePath(&pathListOutput);
-    if(pathListOutput == NULL){
-        printf("all good");
-    }
+    assert(pathListOutput == NULL);
+
+    int freeInode = findEmptyInode(fs);
+    printf(" free inode = %d\n",freeInode );
+
 
 }
 
