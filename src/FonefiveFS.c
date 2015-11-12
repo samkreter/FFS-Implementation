@@ -196,7 +196,6 @@ int findEmptyInode(F15FS_t *const fs){
     if(fs){
         int i = 0;
         for(i = 0; i < 256; i++){
-            printf("inode inuse %d",(int)fs->inodeTable[i].metaData.inUse);
             if(((int)fs->inodeTable[i].metaData.inUse) != 1){
                 return i;
             }
@@ -237,16 +236,16 @@ int freeFilePath(char*** pathList){
 // 1 found 0 not found but still filled <0 error
 int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOutParams){
     if(fs && pathList && searchOutParams){
-        int listSize = *pathList[0] - '0';
+        int listSize = (int)*pathList[0];
         int i = 1;
         //start it at the root node
         inode_ptr_t currInode = ROOT_INODE;
         inode_ptr_t parentInode = ROOT_INODE;
         int result = 0;
 
-        for(i = 1; i < listSize; i++){
+        for(i = 1; i < listSize + 1; i++){
             result = searchDir(fs, pathList[1], fs->inodeTable[parentInode].data_ptrs[0], &currInode);
-
+            printf("results is: %d\n",result);
             if(result == 0){
                 //not found but at the end of list, populate with parent direct
                 //for creating a file in that spot
@@ -258,6 +257,7 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
                 else{
                     //bad path
                     searchOutParams->found = 0;
+                    printf("bad path1\n");
                     return -1;
                 }
 
@@ -270,10 +270,12 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
                 }
                 else if((listSize - i) == 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
                     //can't end it path with directory
+                    printf("can't end with directory1\n");
                     return -2;
                 }
                 else if((listSize - i) != 0 && fs->inodeTable[currInode].metaData.filetype == REGULAR){
                     //can't have file not at end of path
+                    printf("can't have file not at end of file\n");
                     return -3;
                 }
                 else if((listSize - i) == 0 && fs->inodeTable[currInode].metaData.filetype == REGULAR){
@@ -287,9 +289,12 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
 
 
          }
+         printf("nobdy likes you\n");
+         return 1;
 
     }
     //bad params
+    printf("bad parasm2\n");
     return -1;
 }
 
@@ -384,12 +389,13 @@ int parseFilePath(const char *const filePath, char*** pathListOutput){
     return -1;
 }
 
-int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode){
+int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode, ftype_t ftype){
     if(fs && fname && strcmp(fname,"") != 0 && dirInode){
         dir_block_t dir;
         if(block_store_read(fs->bs,dirInode,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
             if(dir.metaData.size < DIR_REC_MAX && strlen(fname) <= FNAME_MAX){
                 dir.entries[dir.metaData.size+1].inode = fileInode;
+                dir.entries[dir.metaData.size+1].ftype = ftype;
                 strcpy(dir.entries[dir.metaData.size+1].filename, fname);
                 //write the block back to the store
                 if(block_store_write(fs->bs,dirInode,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){

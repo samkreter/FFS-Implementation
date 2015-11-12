@@ -196,19 +196,17 @@ void test_sam(){
 
     char **pathListOutput = NULL;
 
-    parseFilePath(filenames[2], &pathListOutput);
+    parseFilePath(filenames[0], &pathListOutput);
     int size = (int)*pathListOutput[0];
     int i = 1;
     for(;i<size+1;i++){
         printf("the string: %s\n",pathListOutput[i]);
     }
+    search_dir_t dirInfo;
+    printf("inode path result: %d\n",getInodeFromPath(fs,pathListOutput, &dirInfo));
 
-    freeFilePath(&pathListOutput);
-    assert(pathListOutput == NULL);
 
-    int freeInode = findEmptyInode(fs);
-    printf(" free inode = %d\n",freeInode );
-
+    assert(fs_unmount(fs) == 0);
 
 }
 
