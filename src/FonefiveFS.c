@@ -209,7 +209,9 @@ int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t*
     dir_block_t dir;
     if(block_store_read(fs->bs,blockNum,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
         int i = 0;
+        printf("dir size = %d\n",dir.metaData.size);
         for(i = 0; i < dir.metaData.size; i++){
+            printf("insed SD name: %s\n",dir.entries[i].filename);
             if(strcmp(dir.entries[i].filename,fname) == 0){
                 *inodeIndex = dir.entries[i].inode;
                 return 1;
@@ -244,8 +246,9 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
         int result = 0;
 
         for(i = 1; i < listSize + 1; i++){
-            result = searchDir(fs, pathList[1], fs->inodeTable[parentInode].data_ptrs[0], &currInode);
-            printf("results is: %d\n",result);
+        	printf("block num: %lu", (size_t)fs->inodeTable[parentInode].data_ptrs[0]);
+            result = searchDir(fs, pathList[i], fs->inodeTable[parentInode].data_ptrs[0], &currInode);
+            printf("i = %d\n",i);
             if(result == 0){
                 //not found but at the end of list, populate with parent direct
                 //for creating a file in that spot
@@ -392,13 +395,15 @@ int parseFilePath(const char *const filePath, char*** pathListOutput){
 int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode, ftype_t ftype){
     if(fs && fname && strcmp(fname,"") != 0 && dirInode){
         dir_block_t dir;
-        if(block_store_read(fs->bs,dirInode,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
+        if(block_store_read(fs->bs,fs->inodeTable[dirInode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
             if(dir.metaData.size < DIR_REC_MAX && strlen(fname) <= FNAME_MAX){
                 dir.entries[dir.metaData.size+1].inode = fileInode;
                 dir.entries[dir.metaData.size+1].ftype = ftype;
                 strcpy(dir.entries[dir.metaData.size+1].filename, fname);
+                dir.metaData.size++;
                 //write the block back to the store
-                if(block_store_write(fs->bs,dirInode,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
+                
+                if(block_store_write(fs->bs,fs->inodeTable[dirInode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
                     return 1;
                 }
             }
