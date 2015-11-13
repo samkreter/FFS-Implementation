@@ -154,14 +154,14 @@ void tests_f();
 int main() {
 
     puts("Running autotests, sit back and relax, it'll be awhile...\n");
-    test_sam();
-    // tests_a();
+    //test_sam();
+    tests_a();
 
-    // puts("\n\nA tests passed...\n");
+    puts("\n\nA tests passed...\n");
 
-    // tests_b();
+    tests_b();
 
-    // puts("\n\nB tests passed...\n");
+    puts("\n\nB tests passed...\n");
 
     // tests_c();
 
@@ -214,218 +214,218 @@ void test_sam(){
 
 }
 
-// void tests_a() {
+void tests_a() {
 
-//     char *test_fname = "a_tests.f15fs";
+    char *test_fname = "a_tests.f15fs";
 
-//     /*
-//         assert(sizeof(mdata_t) == 48);
-//         assert(sizeof(inode_t) == 128);
-//         assert(sizeof(data_block_t) == 1024);
-//         assert(sizeof(dir_ent_t) == 49);
-//         assert(sizeof(dir_mdata_t) == 44);
-//         assert(sizeof(dir_block_t) == 1024);
-//     */
+    /*
+        assert(sizeof(mdata_t) == 48);
+        assert(sizeof(inode_t) == 128);
+        assert(sizeof(data_block_t) == 1024);
+        assert(sizeof(dir_ent_t) == 49);
+        assert(sizeof(dir_mdata_t) == 44);
+        assert(sizeof(dir_block_t) == 1024);
+    */
 
-//     // FORMAT 1
-//     assert(fs_format(test_fname) == 0);
-//     // FORMAT 2
-//     assert(fs_format(NULL) < 0);
-//     // FORMAT 3
-//     assert(fs_format("") < 0);
+    // FORMAT 1
+    assert(fs_format(test_fname) == 0);
+    // FORMAT 2
+    assert(fs_format(NULL) < 0);
+    // FORMAT 3
+    assert(fs_format("") < 0);
 
-//     // MOUNT 1
-//     F15FS_t *fs = fs_mount(test_fname);
-//     assert(fs);
-//     // MOUNT 2
-//     assert(fs_mount(NULL) == NULL);
-//     // MOUNT 3
-//     assert(fs_mount("") == NULL);
+    // MOUNT 1
+    F15FS_t *fs = fs_mount(test_fname);
+    assert(fs);
+    // MOUNT 2
+    assert(fs_mount(NULL) == NULL);
+    // MOUNT 3
+    assert(fs_mount("") == NULL);
 
-//     // UNMOUNT 1
-//     assert(fs_unmount(fs) == 0);
-//     // UNMOUNT 2
-//     assert(fs_unmount(NULL) < 0);
+    // UNMOUNT 1
+    assert(fs_unmount(fs) == 0);
+    // UNMOUNT 2
+    assert(fs_unmount(NULL) < 0);
 
-// }
+}
 
-// // CREATE_FILE
-// void tests_b() {
-//     const char *(filenames[13]) = {
-//         "/file", "/folder", "/folder/with_file", "/folder/with_folder",
-//         "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
-//         "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
-//         "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
-//     };
+// CREATE_FILE
+void tests_b() {
+    const char *(filenames[13]) = {
+        "/file", "/folder", "/folder/with_file", "/folder/with_folder",
+        "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
+        "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
+        "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
+    };
 
-//     const char *(test_fname[2]) = {"b_tests_normal.f15fs", "b_tests_full_table.f15fs"};
+    const char *(test_fname[2]) = {"b_tests_normal.f15fs", "b_tests_full_table.f15fs"};
 
-//     assert(fs_format(test_fname[0]) == 0);
+    assert(fs_format(test_fname[0]) == 0);
 
-//     F15FS_t *fs = fs_mount(test_fname[0]);
+    F15FS_t *fs = fs_mount(test_fname[0]);
 
-//     assert(fs);
+    assert(fs);
 
-//     // CREATE_FILE 1
-//     assert(fs_create_file(fs, filenames[0], REGULAR) == 0);
+    // CREATE_FILE 1
+    assert(fs_create_file(fs, filenames[0], REGULAR) == 0);
 
-//     // CREATE_FILE 2
-//     assert(fs_create_file(fs, filenames[1], DIRECTORY) == 0);
+    // CREATE_FILE 2
+    assert(fs_create_file(fs, filenames[1], DIRECTORY) == 0);
 
-//     // CREATE_FILE 3
-//     assert(fs_create_file(fs, filenames[2], REGULAR) == 0);
+    // CREATE_FILE 3
+    assert(fs_create_file(fs, filenames[2], REGULAR) == 0);
 
-//     // CREATE_FILE 4
-//     assert(fs_create_file(fs, filenames[3], DIRECTORY) == 0);
+    // CREATE_FILE 4
+    assert(fs_create_file(fs, filenames[3], DIRECTORY) == 0);
 
-//     // CREATE_FILE 5
-//     assert(fs_create_file(NULL, filenames[4], REGULAR) < 0);
+    // CREATE_FILE 5
+    assert(fs_create_file(NULL, filenames[4], REGULAR) < 0);
 
-//     // CREATE_FILE 6
-//     assert(fs_create_file(fs, NULL, REGULAR) < 0);
+    // CREATE_FILE 6
+    assert(fs_create_file(fs, NULL, REGULAR) < 0);
 
-//     // CREATE_FILE 7
-//     assert(fs_create_file(fs, "", REGULAR) < 0);
+    // CREATE_FILE 7
+    assert(fs_create_file(fs, "", REGULAR) < 0);
 
-//     // CREATE_FILE 8
-//     assert(fs_create_file(fs, "", 44) < 0);
+    // CREATE_FILE 8
+    assert(fs_create_file(fs, "", 44) < 0);
 
-//     // CREATE_FILE 9
-//     assert(fs_create_file(fs, filenames[6], REGULAR) < 0);
+    // CREATE_FILE 9
+    assert(fs_create_file(fs, filenames[6], REGULAR) < 0);
 
-//     // CREATE_FILE 10
-//     assert(fs_create_file(fs, filenames[12], DIRECTORY) < 0);
+    // CREATE_FILE 10
+    assert(fs_create_file(fs, filenames[12], DIRECTORY) < 0);
 
-//     // CREATE_FILE 11
-//     assert(fs_create_file(fs, filenames[1], DIRECTORY) < 0);
-//     assert(fs_create_file(fs, filenames[1], REGULAR) < 0);
+    // CREATE_FILE 11
+    assert(fs_create_file(fs, filenames[1], DIRECTORY) < 0);
+    assert(fs_create_file(fs, filenames[1], REGULAR) < 0);
 
-//     // CREATE_FILE 12
-//     assert(fs_create_file(fs, filenames[0], REGULAR) < 0);
-//     assert(fs_create_file(fs, filenames[0], DIRECTORY) < 0);
+    // CREATE_FILE 12
+    assert(fs_create_file(fs, filenames[0], REGULAR) < 0);
+    assert(fs_create_file(fs, filenames[0], DIRECTORY) < 0);
 
-//     // CREATE_FILE 13
-//     assert(fs_create_file(fs, filenames[5], REGULAR) < 0);
+    // CREATE_FILE 13
+    assert(fs_create_file(fs, filenames[5], REGULAR) < 0);
 
-//     // CREATE_FILE 14
-//     assert(fs_create_file(fs, filenames[7], REGULAR) < 0);
+    // CREATE_FILE 14
+    assert(fs_create_file(fs, filenames[7], REGULAR) < 0);
 
-//     // CREATE_FILE 15
-//     //assert(fs_create_file(fs, filenames[8], REGULAR) < 0);
-//     // Hmm, because of the way strtok works, this fails.
-//     // But if we don't support relative paths, is there a reason to force abolute notation?
-//     // It's really a semi-arbitrary restriction
-//     // I suppose relative paths are up to the implementation, since . and .. are just special folder entires
-//     // but that would mess with the directory content total, BUT extra parsing can work around that.
-//     // Hmmmm.
+    // CREATE_FILE 15
+    //assert(fs_create_file(fs, filenames[8], REGULAR) < 0);
+    // Hmm, because of the way strtok works, this fails.
+    // But if we don't support relative paths, is there a reason to force abolute notation?
+    // It's really a semi-arbitrary restriction
+    // I suppose relative paths are up to the implementation, since . and .. are just special folder entires
+    // but that would mess with the directory content total, BUT extra parsing can work around that.
+    // Hmmmm.
 
-//     // CREATE_FILE 16
-//     assert(fs_create_file(fs, filenames[9], DIRECTORY) < 0);
+    // CREATE_FILE 16
+    assert(fs_create_file(fs, filenames[9], DIRECTORY) < 0);
 
-//     // CREATE_FILE 17
-//     assert(fs_create_file(fs, filenames[10], REGULAR) < 0);
+    // CREATE_FILE 17
+    assert(fs_create_file(fs, filenames[10], REGULAR) < 0);
 
-//     // CREATE_FILE 18
-//     assert(fs_create_file(fs, filenames[11], REGULAR) < 0);
+    // CREATE_FILE 18
+    assert(fs_create_file(fs, filenames[11], REGULAR) < 0);
 
-//     // CREATE_FILE 19 - OUT OF INODES (and test 18 along the way)
-//     // Gotta make... Uhh... A bunch of files. (255, but we'll need directories to hold them as well)
-//     // Closing this file now for inspection to make sure these tests didn't mess it up
-//     // There should be... 3 allocated data blocks and 5 inodes in use
+    // CREATE_FILE 19 - OUT OF INODES (and test 18 along the way)
+    // Gotta make... Uhh... A bunch of files. (255, but we'll need directories to hold them as well)
+    // Closing this file now for inspection to make sure these tests didn't mess it up
+    // There should be... 3 allocated data blocks and 5 inodes in use
 
-//     fs_unmount(fs);
+    fs_unmount(fs);
 
-//     assert(fs_format(test_fname[1]) == 0);
+    assert(fs_format(test_fname[1]) == 0);
 
-//     fs = fs_mount(test_fname[1]);
+    fs = fs_mount(test_fname[1]);
 
-//     assert(fs);
+    assert(fs);
 
-//     {
-//         //puts("Attempting to fill inode table...");
+    {
+        //puts("Attempting to fill inode table...");
 
-//         // Dummy string to loop with
-//         char fname[] = "/a/a";
-//         // If we do basic a-z, with a-z contained in each, that's... 26*20 which is ~2x as much as we need
-//         // Gotta do the math on when this should fail to set the right bounds
+        // Dummy string to loop with
+        char fname[] = "/a/a";
+        // If we do basic a-z, with a-z contained in each, that's... 26*20 which is ~2x as much as we need
+        // Gotta do the math on when this should fail to set the right bounds
 
-//         // 12 dirs of 20, remainder is... 3 inodes (dir and 2 files)
-//         for (char dir = 'a'; dir < 'm'; fname[1] = ++dir) {
-//             fname[2] = '\0';
-//             assert(fs_create_file(fs, fname, DIRECTORY) == 0);
-//             //printf("File: %s\n",fname);
-//             fname[2] = '/';
-//             for (char file = 'a'; file < 'u'; fname[3] = ++file) {
-//                 //printf("File: %s\n",fname);
-//                 assert(fs_create_file(fs, fname, REGULAR) == 0);
-//             }
-//         }
+        // 12 dirs of 20, remainder is... 3 inodes (dir and 2 files)
+        for (char dir = 'a'; dir < 'm'; fname[1] = ++dir) {
+            fname[2] = '\0';
+            assert(fs_create_file(fs, fname, DIRECTORY) == 0);
+            //printf("File: %s\n",fname);
+            fname[2] = '/';
+            for (char file = 'a'; file < 'u'; fname[3] = ++file) {
+                //printf("File: %s\n",fname);
+                assert(fs_create_file(fs, fname, REGULAR) == 0);
+            }
+        }
 
-//         // CREATE_FILE 19
-//         assert(fs_create_file(fs, "/a/z", REGULAR) < 0);
+        // CREATE_FILE 19
+        assert(fs_create_file(fs, "/a/z", REGULAR) < 0);
 
-//         // Catch up to finish creation
-//         fname[1] = 'm';
-//         fname[2] = '\0';
-//         //printf("File: %s\n",fname);
-//         assert(fs_create_file(fs, fname, DIRECTORY) == 0);
+        // Catch up to finish creation
+        fname[1] = 'm';
+        fname[2] = '\0';
+        //printf("File: %s\n",fname);
+        assert(fs_create_file(fs, fname, DIRECTORY) == 0);
 
-//         fname[2] = '/';
-//         fname[3] = 'a';
-//         //printf("File: %s\n",fname);
-//         assert(fs_create_file(fs, fname, REGULAR) == 0);
+        fname[2] = '/';
+        fname[3] = 'a';
+        //printf("File: %s\n",fname);
+        assert(fs_create_file(fs, fname, REGULAR) == 0);
 
-//         fname[3] = 'b';
-//         //printf("File: %s\n",fname);
-//         assert(fs_create_file(fs, fname, REGULAR) == 0);
-//         //puts("Inode table full?");
+        fname[3] = 'b';
+        //printf("File: %s\n",fname);
+        assert(fs_create_file(fs, fname, REGULAR) == 0);
+        //puts("Inode table full?");
 
-//         // This should fail, no more inodes.
-//         // CREATE_FILE 20
-//         fname[3] = 'c';
-//         assert(fs_create_file(fs, fname, REGULAR) < 0);
+        // This should fail, no more inodes.
+        // CREATE_FILE 20
+        fname[3] = 'c';
+        assert(fs_create_file(fs, fname, REGULAR) < 0);
 
-//     }
-//     // save file for inspection
-//     fs_unmount(fs);
+    }
+    // save file for inspection
+    fs_unmount(fs);
 
-//     // ... Can't really test 20 yet.
-// }
+    // ... Can't really test 20 yet.
+}
 
-// void print_dir_records(const char *const fname, const dir_rec_t *const records) {
-//     if (fname && records) {
-//         printf("\n*** DIRECTORY RECORD ***\n");
-//         printf("* DIRECTORY: %s\n", fname);
-//         printf("* ENTRIES: %d\n", records->total);
-//         for (unsigned i = 0; i < records->total; ++i) {
-//             printf("* %d:\t%s - %s\n", i, records->contents[i].fname,
-//                    ((records->contents[i].ftype == REGULAR) ? "REGULAR" :
-//                     ((records->contents[i].ftype == DIRECTORY) ? "DIRECTORY" :
-//                      "UNKNOWN")));
-//         }
-//         printf("****** RECORD END ******\n\n");
-//         return;
-//     }
-//     assert(false /* tester broken? */);
-// }
+void print_dir_records(const char *const fname, const dir_rec_t *const records) {
+    if (fname && records) {
+        printf("\n*** DIRECTORY RECORD ***\n");
+        printf("* DIRECTORY: %s\n", fname);
+        printf("* ENTRIES: %d\n", records->total);
+        for (unsigned i = 0; i < records->total; ++i) {
+            printf("* %d:\t%s - %s\n", i, records->contents[i].fname,
+                   ((records->contents[i].ftype == REGULAR) ? "REGULAR" :
+                    ((records->contents[i].ftype == DIRECTORY) ? "DIRECTORY" :
+                     "UNKNOWN")));
+        }
+        printf("****** RECORD END ******\n\n");
+        return;
+    }
+    assert(false /* tester broken? */);
+}
 
-// bool check_record_for_file(const char *const fname, const ftype_t ftype, const dir_rec_t *const records) {
-//     if (fname && records) {
-//         for (unsigned i = 0; i < records->total; ++i) {
-//             // Technically this may be risky since strncmp
-//             // Doesn't say when it will stop
-//             // and fname probably won't be FNAME_MAX in length
-//             // But at least my fname will be properly terminated
-//             // So it should cause strncmp to stop first
-//             if (strncmp(records->contents[i].fname, fname, FNAME_MAX) == 0) {
-//                 return (records->contents[i].ftype == ftype);
-//             }
-//         }
-//         return false;
-//     } else {
-//         assert(false /* tester broken? */);
-//     }
-// }
+bool check_record_for_file(const char *const fname, const ftype_t ftype, const dir_rec_t *const records) {
+    if (fname && records) {
+        for (unsigned i = 0; i < records->total; ++i) {
+            // Technically this may be risky since strncmp
+            // Doesn't say when it will stop
+            // and fname probably won't be FNAME_MAX in length
+            // But at least my fname will be properly terminated
+            // So it should cause strncmp to stop first
+            if (strncmp(records->contents[i].fname, fname, FNAME_MAX) == 0) {
+                return (records->contents[i].ftype == ftype);
+            }
+        }
+        return false;
+    } else {
+        assert(false /* tester broken? */);
+    }
+}
 
 // // FS_GET_DIR
 // void tests_c() {

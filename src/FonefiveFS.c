@@ -247,14 +247,16 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
 
         for(i = 1; i < listSize + 1; i++){
             result = searchDir(fs, pathList[i], fs->inodeTable[parentInode].data_ptrs[0], &currInode);
-            printf("i = %d and rsult = %d\n",i, result);
+            printf("Result is: %d\n",result);
+            printf("looking for %s\n",pathList[i]);
+            printf("list size %d, i = %d\n",listSize,i);
             if(result == 0){
-            	printf("list size is %d\n",listSize);
                 //not found but at the end of list, populate with parent direct
                 //for creating a file in that spot
                 if((listSize - i) == 0){
                     searchOutParams->found = 0;
                     searchOutParams->parentDir = parentInode;
+                    printf("empty and not found\n");
                     return 0;
                 }
                 else{
@@ -269,6 +271,7 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
             else if(result == 1){
                 if((listSize - i) != 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
                     parentInode = currInode;
+                    printf("continuing\n");
                     continue;
                 }
                 else if((listSize - i) == 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
@@ -285,7 +288,7 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
                     searchOutParams->found = 1;
                     searchOutParams->parentDir = parentInode;
                     searchOutParams->inode = currInode;
-                    //
+                    printf("all good found file\n");
                     return 1;
                 }
             }
@@ -428,7 +431,7 @@ int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileIno
 ///
 int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t ftype){
     //param check
-    if(fs && fname && strcmp(fname,"") != 0 && ftype){
+    if(fs && fname && strcmp(fname,"") != 0 && strcmp(fname,"/") != 0&& ftype){
         int emptyiNodeIndex = findEmptyInode(fs);
         char **pathList = NULL;
         int listSize = 0;
@@ -438,6 +441,7 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
                 listSize = (int)*pathList[0];
                 //set the use byte
                 fs->inodeTable[emptyiNodeIndex].metaData.inUse = 1;
+                fs->inodeTable[emptyiNodeIndex].metaData.filetype = ftype;
 
                 //add the fname to the inode
                 strcpy(fs->inodeTable[emptyiNodeIndex].fname,pathList[listSize]);
@@ -445,11 +449,11 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
 
                 if(ftype == DIRECTORY){
                     if((fs->inodeTable[emptyiNodeIndex].data_ptrs[0] = setUpDirBlock(fs->bs)) > 0){
-                        return 1;
+                        return 0;
                     }
                 }else{
                     //no need to do anything if its just a file, need to actual have things be writen
-                    return 1;
+                    return 0;
                 }
             }
         }
