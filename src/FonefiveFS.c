@@ -246,10 +246,10 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
         int result = 0;
 
         for(i = 1; i < listSize + 1; i++){
-        	printf("block num: %lu", (size_t)fs->inodeTable[parentInode].data_ptrs[0]);
             result = searchDir(fs, pathList[i], fs->inodeTable[parentInode].data_ptrs[0], &currInode);
-            printf("i = %d\n",i);
+            printf("i = %d and rsult = %d\n",i, result);
             if(result == 0){
+            	printf("list size is %d\n",listSize);
                 //not found but at the end of list, populate with parent direct
                 //for creating a file in that spot
                 if((listSize - i) == 0){
@@ -393,24 +393,29 @@ int parseFilePath(const char *const filePath, char*** pathListOutput){
 }
 
 int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode, ftype_t ftype){
-    if(fs && fname && strcmp(fname,"") != 0 && dirInode){
+    if(fs && fname && strcmp(fname,"") != 0 && dirInode >= 0){
         dir_block_t dir;
         if(block_store_read(fs->bs,fs->inodeTable[dirInode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
             if(dir.metaData.size < DIR_REC_MAX && strlen(fname) <= FNAME_MAX){
                 dir.entries[dir.metaData.size+1].inode = fileInode;
                 dir.entries[dir.metaData.size+1].ftype = ftype;
-                strcpy(dir.entries[dir.metaData.size+1].filename, fname);
+                strcpy(dir.entries[dir.metaData.size].filename, fname);
+                printf("file  name p::: %s\n",dir.entries[dir.metaData.size].filename);
                 dir.metaData.size++;
                 //write the block back to the store
-                
+                printf("size %d\n",dir.metaData.size);
                 if(block_store_write(fs->bs,fs->inodeTable[dirInode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
                     return 1;
                 }
+                printf("failed to write to block afto din\n");
             }
+            printf("couldn't add to dir1\n");
             return -1;
         }
+        printf("coulnd't add to dir 2\n");
         return -1;
     }
+    printf("bad params addto din\n");
     return -1;
 }
 

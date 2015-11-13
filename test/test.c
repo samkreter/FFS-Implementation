@@ -205,7 +205,7 @@ void test_sam(){
 
     printf("create folder result %d\n",fs_create_file(fs, filenames[1], DIRECTORY));
     printf("filename of folder: %s\n",fs->inodeTable[1].fname);
-
+    printf("\n\n");
     printf("create file result %d\n",fs_create_file(fs, filenames[2], REGULAR));
     printf("filename of file: %s\n",fs->inodeTable[2].fname);
     
