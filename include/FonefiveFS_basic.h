@@ -3,6 +3,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <block_store.h>
+#include <inttypes.h>
 // Probably other things
 
 
@@ -20,6 +21,10 @@ typedef enum {
 #define BLOCK_SIZE 1024
 #define FNAME_MAX 47
 #define DIR_REC_MAX 20
+#define INODE_BLOCK_OFFSET 8
+#define INODE_BLOCK_TOTAL 32
+#define DATA_BLOCK_MAX 65536
+#define DATA_BLOCK_OFFSET (INODE_BLOCK_OFFSET + INODE_BLOCK_TOTAL)
 //#define BLOCK_IDX_VALID(block_idx) ((block_idx) >= DATA_BLOCK_OFFSET && (block_idx) < DATA_BLOCK_MAX)
 #define DIRECT_TOTAL 6
 #define INDIRECT_TOTAL (BLOCK_SIZE / sizeof(block_ptr_t))
@@ -146,7 +151,8 @@ int freeFilePath(char*** pathList);
 int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOutParams);
 int parseFilePath(const char *const filePath, char*** pathListOutput);
 int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode, ftype_t ftype);
-
+block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data,size_t nbytes,size_t needToAllocate,size_t blocksUsed,block_ptr_t indirectBlockId);
+block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data, size_t offset,size_t nbytes,size_t *needToAllocate, block_ptr_t blockId);
 ///
 /// Mounts the specified file and returns an F15FS object
 /// \param fname the file to load

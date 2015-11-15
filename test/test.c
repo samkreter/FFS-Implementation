@@ -265,13 +265,14 @@ void tests_b() {
     F15FS_t *fs = fs_mount(test_fname[0]);
 
     assert(fs);
-
+    printf("\n\n\n\n");
     // CREATE_FILE 1
     assert(fs_create_file(fs, filenames[0], REGULAR) == 0);
-
+    printf("\n\n\n\n");
     // CREATE_FILE 2
     assert(fs_create_file(fs, filenames[1], DIRECTORY) == 0);
 
+    printf("\n\n\n\n\n\n");
     // CREATE_FILE 3
     assert(fs_create_file(fs, filenames[2], REGULAR) == 0);
 
@@ -427,505 +428,505 @@ bool check_record_for_file(const char *const fname, const ftype_t ftype, const d
     }
 }
 
-// // FS_GET_DIR
-// void tests_c() {
-
-//     // We'll ref the files from the b tests, but copy them over first
-//     // Just in case it changes anything
-//     assert(system("cp b_tests_normal.f15fs c_tests_normal.f15fs") == 0);
-//     const char *test_fname = "c_tests_normal.f15fs";
-//     const char *(filenames[13]) = {
-//         "/file", "/folder", "/folder/with_file", "/folder/with_folder",
-//         "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
-//         "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
-//         "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
-//     };
-
-//     F15FS_t *fs = fs_mount(test_fname);
-//     // This should have root, folder, file, folder/with_file, folder/with_folder
+// FS_GET_DIR
+void tests_c() {
+
+    // We'll ref the files from the b tests, but copy them over first
+    // Just in case it changes anything
+    assert(system("cp b_tests_normal.f15fs c_tests_normal.f15fs") == 0);
+    const char *test_fname = "c_tests_normal.f15fs";
+    const char *(filenames[13]) = {
+        "/file", "/folder", "/folder/with_file", "/folder/with_folder",
+        "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
+        "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
+        "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
+    };
+
+    F15FS_t *fs = fs_mount(test_fname);
+    // This should have root, folder, file, folder/with_file, folder/with_folder
 
-//     dir_rec_t record_struct;
-//     // FS_GET_DIR 1
-//     assert(fs_get_dir(fs, filenames[12], &record_struct) == 0);
-//     print_dir_records(filenames[12], &record_struct);
-//     assert(record_struct.total == 2);
-//     assert(check_record_for_file(strrchr(filenames[0], '/') + 1, REGULAR, &record_struct));
-//     assert(check_record_for_file(strrchr(filenames[1], '/') + 1, DIRECTORY, &record_struct));
-
-//     // FS_GET_DIR 2
-//     assert(fs_get_dir(fs, filenames[1], &record_struct) == 0);
-//     print_dir_records(filenames[1], &record_struct);
-//     assert(record_struct.total == 2);
-//     assert(check_record_for_file(strrchr(filenames[2], '/') + 1, REGULAR, &record_struct));
-//     assert(check_record_for_file(strrchr(filenames[3], '/') + 1, DIRECTORY, &record_struct));
+    dir_rec_t record_struct;
+    // FS_GET_DIR 1
+    assert(fs_get_dir(fs, filenames[12], &record_struct) == 0);
+    print_dir_records(filenames[12], &record_struct);
+    assert(record_struct.total == 2);
+    assert(check_record_for_file(strrchr(filenames[0], '/') + 1, REGULAR, &record_struct));
+    assert(check_record_for_file(strrchr(filenames[1], '/') + 1, DIRECTORY, &record_struct));
+
+    // FS_GET_DIR 2
+    assert(fs_get_dir(fs, filenames[1], &record_struct) == 0);
+    print_dir_records(filenames[1], &record_struct);
+    assert(record_struct.total == 2);
+    assert(check_record_for_file(strrchr(filenames[2], '/') + 1, REGULAR, &record_struct));
+    assert(check_record_for_file(strrchr(filenames[3], '/') + 1, DIRECTORY, &record_struct));
 
-//     // FS_GET_DIR 3
-//     assert(fs_get_dir(fs, filenames[3], &record_struct) == 0);
-//     print_dir_records(filenames[3], &record_struct);
-//     assert(record_struct.total == 0);
+    // FS_GET_DIR 3
+    assert(fs_get_dir(fs, filenames[3], &record_struct) == 0);
+    print_dir_records(filenames[3], &record_struct);
+    assert(record_struct.total == 0);
 
-//     // FS_GET_DIR 4
-//     assert(fs_get_dir(fs, "", &record_struct) < 0);
+    // FS_GET_DIR 4
+    assert(fs_get_dir(fs, "", &record_struct) < 0);
 
-//     // FS_GET_DIR 5
-//     assert(fs_get_dir(fs, NULL, &record_struct) < 0);
+    // FS_GET_DIR 5
+    assert(fs_get_dir(fs, NULL, &record_struct) < 0);
 
-//     // FS_GET_DIR 6
-//     assert(fs_get_dir(NULL, filenames[12], &record_struct) < 0);
+    // FS_GET_DIR 6
+    assert(fs_get_dir(NULL, filenames[12], &record_struct) < 0);
 
-//     // FS_GET_DIR 7
-//     assert(fs_get_dir(fs, filenames[12], NULL) < 0);
+    // FS_GET_DIR 7
+    assert(fs_get_dir(fs, filenames[12], NULL) < 0);
 
-//     // FS_GET_DIR 8
-//     assert(fs_get_dir(fs, filenames[0], &record_struct) < 0);
+    // FS_GET_DIR 8
+    assert(fs_get_dir(fs, filenames[0], &record_struct) < 0);
 
-//     assert(fs_unmount(fs) == 0);
-// }
+    assert(fs_unmount(fs) == 0);
+}
 
-// #if DESCRIPTOR_TESTS
+#if DESCRIPTOR_TESTS
 
-// // FS_OPEN_FILE
-// void tests_d() {
-//     // Once again, just borrow B's file.
-//     assert(system("cp b_tests_normal.f15fs d_tests.f15fs") == 0);
+// FS_OPEN_FILE
+void tests_d() {
+    // Once again, just borrow B's file.
+    assert(system("cp b_tests_normal.f15fs d_tests.f15fs") == 0);
 
-//     const char *test_fname = "d_tests.f15fs";
-//     const char *(filenames[13]) = {
-//         "/file", "/folder", "/folder/with_file", "/folder/with_folder",
-//         "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
-//         "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
-//         "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
-//     };
+    const char *test_fname = "d_tests.f15fs";
+    const char *(filenames[13]) = {
+        "/file", "/folder", "/folder/with_file", "/folder/with_folder",
+        "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
+        "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
+        "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
+    };
 
-//     F15FS_t *fs = fs_mount(test_fname);
-//     assert(fs);
+    F15FS_t *fs = fs_mount(test_fname);
+    assert(fs);
 
-//     // FS_OPEN_FILE 1
-//     assert(fs_open_file(fs, filenames[0]) >= 0);
+    // FS_OPEN_FILE 1
+    assert(fs_open_file(fs, filenames[0]) >= 0);
 
-//     // FS_OPEN_FILE 2
-//     assert(fs_open_file(fs, filenames[2]) >= 0);
+    // FS_OPEN_FILE 2
+    assert(fs_open_file(fs, filenames[2]) >= 0);
 
-//     // FS_OPEN_FILE 3
-//     assert(fs_open_file(fs, filenames[2]) >= 0);
+    // FS_OPEN_FILE 3
+    assert(fs_open_file(fs, filenames[2]) >= 0);
 
-//     // FS_OPEN_FILE 4
-//     assert(fs_open_file(NULL, filenames[2]) < 0);
+    // FS_OPEN_FILE 4
+    assert(fs_open_file(NULL, filenames[2]) < 0);
 
-//     // FS_OPEN_FILE 5
-//     assert(fs_open_file(fs, NULL) < 0);
+    // FS_OPEN_FILE 5
+    assert(fs_open_file(fs, NULL) < 0);
 
-//     // FS_OPEN_FILE 6
-//     assert(fs_open_file(fs, "") < 0);
+    // FS_OPEN_FILE 6
+    assert(fs_open_file(fs, "") < 0);
 
-//     // FS_OPEN_FILE 7
-//     assert(fs_open_file(fs, filenames[1]) < 0);
+    // FS_OPEN_FILE 7
+    assert(fs_open_file(fs, filenames[1]) < 0);
 
-//     // FS_OPEN_FILE 8
-//     assert(fs_open_file(fs, filenames[4]) < 0);
+    // FS_OPEN_FILE 8
+    assert(fs_open_file(fs, filenames[4]) < 0);
 
-//     // FS_OPEN_FILE 9
-//     // we have... 3 open so far
-//     for (unsigned i = 3; i < 256; ++i) {
-//         assert(fs_open_file(fs, filenames[2]) >= 0);
-//     }
-//     // So this should fail
-//     assert(fs_open_file(fs, filenames[2]) < 0);
+    // FS_OPEN_FILE 9
+    // we have... 3 open so far
+    for (unsigned i = 3; i < 256; ++i) {
+        assert(fs_open_file(fs, filenames[2]) >= 0);
+    }
+    // So this should fail
+    assert(fs_open_file(fs, filenames[2]) < 0);
 
-//     assert(fs_unmount(fs));
+    assert(fs_unmount(fs));
 
-// }
+}
 
-// // FS_WRITE_FILE - DESCRIPTOR
-// void tests_e() {
-//     // Terrible tests for a terrible function
+// FS_WRITE_FILE - DESCRIPTOR
+void tests_e() {
+    // Terrible tests for a terrible function
 
-//     // Once again, just borrow B's file.
-//     assert(system("cp b_tests_normal.f15fs e_tests_normal.f15fs") == 0);
+    // Once again, just borrow B's file.
+    assert(system("cp b_tests_normal.f15fs e_tests_normal.f15fs") == 0);
 
-//     const char *(test_fname[2]) = {"e_tests_normal.f15fs", "e_tests_full.f15fs"};
-//     const char *(filenames[13]) = {
-//         "/file", "/folder", "/folder/with_file", "/folder/with_folder",
-//         "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
-//         "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
-//         "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
-//     };
+    const char *(test_fname[2]) = {"e_tests_normal.f15fs", "e_tests_full.f15fs"};
+    const char *(filenames[13]) = {
+        "/file", "/folder", "/folder/with_file", "/folder/with_folder",
+        "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
+        "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
+        "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
+    };
 
-//     F15FS_t *fs = fs_mount(test_fname[0]);
-//     assert(fs);
+    F15FS_t *fs = fs_mount(test_fname[0]);
+    assert(fs);
 
-//     uint8_t file_data[4096];
-//     memset(file_data, 1, 4096);
+    uint8_t file_data[4096];
+    memset(file_data, 1, 4096);
 
 
-//     int fd;
-//     fd = fs_open_file(fs, filenames[2]);
-//     assert(fd >= 0);
+    int fd;
+    fd = fs_open_file(fs, filenames[2]);
+    assert(fd >= 0);
 
-//     // FS_WRITE_FILE 1
-//     assert(fs_write_file(fs, fd, file_data, 300) == 300);
+    // FS_WRITE_FILE 1
+    assert(fs_write_file(fs, fd, file_data, 300) == 300);
 
-//     // FS_WRITE_FILE 2
-//     assert(fs_write_file(fs, fs, file_data, 824, 200) == 824); // file[2] goes to 1024
+    // FS_WRITE_FILE 2
+    assert(fs_write_file(fs, fs, file_data, 824, 200) == 824); // file[2] goes to 1024
 
 
-//     fd = fs_open_file(fs, filenames[0]);
-//     assert(fd >= 0);
+    fd = fs_open_file(fs, filenames[0]);
+    assert(fd >= 0);
 
-//     // FS_WRITE_FILE 3
-//     assert(fs_write_file(fs, fd, file_data, 1024) == 1024); // file[0] goes to 1024
+    // FS_WRITE_FILE 3
+    assert(fs_write_file(fs, fd, file_data, 1024) == 1024); // file[0] goes to 1024
 
-//     // FS_WRITE_FILE 4
-//     assert(fs_write_file(fs, fd, file_data, 1024) == 1024); // file[0] goes to 2048 now
+    // FS_WRITE_FILE 4
+    assert(fs_write_file(fs, fd, file_data, 1024) == 1024); // file[0] goes to 2048 now
 
-//     // FS_WRITE_FILE 5
-//     assert(fs_write_file(fs, fd, file_data, 300) == 300); // file[2] goes to 2348 now
+    // FS_WRITE_FILE 5
+    assert(fs_write_file(fs, fd, file_data, 300) == 300); // file[2] goes to 2348 now
 
-//     // FS_WRITE_FILE 6
-//     assert(fs_write_file(fs, fd, file_data, 4095) == 4095); // file[0] goes to 6143 now, 1 before end of directs
-//     assert(fs_write_file(fs, fd, file_data, 1025) == 1025); // file[0] goes to 7168, 1 block into indirect
+    // FS_WRITE_FILE 6
+    assert(fs_write_file(fs, fd, file_data, 4095) == 4095); // file[0] goes to 6143 now, 1 before end of directs
+    assert(fs_write_file(fs, fd, file_data, 1025) == 1025); // file[0] goes to 7168, 1 block into indirect
 
-//     // FS_WRITE_FILE 7
-//     // Need to fill out... 256 more blocks to put us 1 into double indirect
-//     for (int i = 0; i < 256; ++i) {
-//         assert(fs_write_file(fs, fd, file_data, 1024) == 1024);
-//     }
-//     // File's into double indirect
+    // FS_WRITE_FILE 7
+    // Need to fill out... 256 more blocks to put us 1 into double indirect
+    for (int i = 0; i < 256; ++i) {
+        assert(fs_write_file(fs, fd, file_data, 1024) == 1024);
+    }
+    // File's into double indirect
 
-//     fs_unmount(fs);
+    fs_unmount(fs);
 
-//     assert(fs_format(filenames[1]) == 0);
-//     fs = fs_mount(filenames[1]);
-//     assert(fs);
+    assert(fs_format(filenames[1]) == 0);
+    fs = fs_mount(filenames[1]);
+    assert(fs);
 
-//     assert(fs_create_file(fs, filenames[0], REGULAR) == 0);
+    assert(fs_create_file(fs, filenames[0], REGULAR) == 0);
 
-//     fd = fs_open_file(fs, filenames[0]);
-//     assert(fd >= 0);
+    fd = fs_open_file(fs, filenames[0]);
+    assert(fd >= 0);
 
-//     // Going to fill the fs with a single file
-//     for (unsigned i = 0; i < 65239; ++i) {
-//         assert(fs_write_file(fs, fd, file_data) == 1024);
-//     }
-//     // File system is now FULL.
-//     // Throw in that test for FS_CREATE_FILE
+    // Going to fill the fs with a single file
+    for (unsigned i = 0; i < 65239; ++i) {
+        assert(fs_write_file(fs, fd, file_data) == 1024);
+    }
+    // File system is now FULL.
+    // Throw in that test for FS_CREATE_FILE
 
-//     // FS_CREATE_FILE 13
-//     assert(fs_create_file(fs, filenames[1], DIRECTORY) < 0);
+    // FS_CREATE_FILE 13
+    assert(fs_create_file(fs, filenames[1], DIRECTORY) < 0);
 
-//     // FS_WRITE_FILE 9
-//     assert(fs_write_file(fs, fd, file_data, 1024) < 0); // out of room should be an error, not a 0 written
+    // FS_WRITE_FILE 9
+    assert(fs_write_file(fs, fd, file_data, 1024) < 0); // out of room should be an error, not a 0 written
 
-//     assert(fs_unmount(fs) == 0);
+    assert(fs_unmount(fs) == 0);
 
-//     fs = fs_mount(test_fname[0]);
-//     assert(fs);
+    fs = fs_mount(test_fname[0]);
+    assert(fs);
 
-//     fd = fs_open_file(fs, filenames[2]);
-//     assert(fd >= 0);
+    fd = fs_open_file(fs, filenames[2]);
+    assert(fd >= 0);
 
-//     // FS_WRITE_FILE 10
-//     assert(fs_write_file(fs, fd, file_data, 1024) == 1024);
-//     assert(fs_write_file(fs, fd, file_data, SIZE_MAX - 512) == 1024);
+    // FS_WRITE_FILE 10
+    assert(fs_write_file(fs, fd, file_data, 1024) == 1024);
+    assert(fs_write_file(fs, fd, file_data, SIZE_MAX - 512) == 1024);
 
-//     // FS_WRITE_FILE 11
-//     fd = fs_open_file(filenames[2]);
-//     assert(fd >= 0);
-//     assert(fs_write_file(NULL, fd, file_data, 300) < 0);
+    // FS_WRITE_FILE 11
+    fd = fs_open_file(filenames[2]);
+    assert(fd >= 0);
+    assert(fs_write_file(NULL, fd, file_data, 300) < 0);
 
-//     // FS_WRITE_FILE 12
-//     assert(fs_write_file(fs, fd, NULL, 300, 0) < 0);
+    // FS_WRITE_FILE 12
+    assert(fs_write_file(fs, fd, NULL, 300, 0) < 0);
 
-//     // FS_WRITE_FILE 13
-//     assert(fs_write_file(fs, fd, file_data, 0) <= 0); // Allow an error or 0 written
+    // FS_WRITE_FILE 13
+    assert(fs_write_file(fs, fd, file_data, 0) <= 0); // Allow an error or 0 written
 
-//     // FS_WRITE_FILE 14
-//     assert(fs_write_file(fs, 9999, file_data, 0) < 0);
+    // FS_WRITE_FILE 14
+    assert(fs_write_file(fs, 9999, file_data, 0) < 0);
 
-//     assert(fs_unmount(fs) == 0);
+    assert(fs_unmount(fs) == 0);
 
-// }
+}
 
-// // FS_READ_FILE - DESCRIPTOR
-// void tests_f() {
+// FS_READ_FILE - DESCRIPTOR
+void tests_f() {
 
-//     assert(system("cp e_tests_normal.f15fs f_tests_normal.f15fs") == 0);
+    assert(system("cp e_tests_normal.f15fs f_tests_normal.f15fs") == 0);
 
-//     const char *test_fname = "f_tests_normal.f15fs";
-//     const char *(filenames[13]) = {
-//         "/file", "/folder", "/folder/with_file", "/folder/with_folder",
-//         "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
-//         "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
-//         "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
-//     };
+    const char *test_fname = "f_tests_normal.f15fs";
+    const char *(filenames[13]) = {
+        "/file", "/folder", "/folder/with_file", "/folder/with_folder",
+        "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
+        "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
+        "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
+    };
 
-//     // file 0 should go into double_indirect, file 2 goes to 1024
+    // file 0 should go into double_indirect, file 2 goes to 1024
 
-//     F15FS_t *fs = fs_mount(test_fname);
-//     assert(fs);
+    F15FS_t *fs = fs_mount(test_fname);
+    assert(fs);
 
-//     uint8_t read_space[4096];
-//     uint8_t check_val[4096];
-//     memset(check_val, 1, 4096); // Didn't actually write any other values
+    uint8_t read_space[4096];
+    uint8_t check_val[4096];
+    memset(check_val, 1, 4096); // Didn't actually write any other values
 
 
-//     int fd[2];
-//     fd[0] = fs_open_file(fs, filenames[0]);
-//     fd[1] = fs_open_file(fs, filenames[2]);
-//     assert(fd[0] >= 0);
-//     assert(fd[1] >= 0);
+    int fd[2];
+    fd[0] = fs_open_file(fs, filenames[0]);
+    fd[1] = fs_open_file(fs, filenames[2]);
+    assert(fd[0] >= 0);
+    assert(fd[1] >= 0);
 
-//     // FS_READ_FILE 1
-//     assert(fs_read_file(fs, fd[1], read_space, 300) == 300);
-//     assert(memcmp(read_space, check_val, 300) == 0);
+    // FS_READ_FILE 1
+    assert(fs_read_file(fs, fd[1], read_space, 300) == 300);
+    assert(memcmp(read_space, check_val, 300) == 0);
 
-//     // FS_READ_FILE 2
-//     assert(fs_read_file(fs, fd[0], read_space, 512) == 512);
-//     assert(fs_read_file(fs, fd[0], read_space, 1024) == 1024);
-//     assert(memcmp(read_space, check_val, 1536) == 0);
+    // FS_READ_FILE 2
+    assert(fs_read_file(fs, fd[0], read_space, 512) == 512);
+    assert(fs_read_file(fs, fd[0], read_space, 1024) == 1024);
+    assert(memcmp(read_space, check_val, 1536) == 0);
 
-//     assert(fs_read_file(fs, fd[0], read_space, 512) == 512); // jump to end of block for other tests
+    assert(fs_read_file(fs, fd[0], read_space, 512) == 512); // jump to end of block for other tests
 
-//     // FS_READ_FILE 3
-//     assert(fs_read_file(fs, fd[0], read_space, 1024) == 1024);
-//     assert(memcmp(read_space, check_val, 1024) == 0);
+    // FS_READ_FILE 3
+    assert(fs_read_file(fs, fd[0], read_space, 1024) == 1024);
+    assert(memcmp(read_space, check_val, 1024) == 0);
 
-//     // FS_READ_FILE 4
-//     assert(fs_read_file(fs, fd[0], read_space, 2048) == 2048);
-//     assert(memcmp(read_space, check_val, 2048) == 0);
+    // FS_READ_FILE 4
+    assert(fs_read_file(fs, fd[0], read_space, 2048) == 2048);
+    assert(memcmp(read_space, check_val, 2048) == 0);
 
-//     // FS_READ_FILE 5
-//     assert(fs_read_file(fs, fd[0], read_space, 2048) == 2048);
-//     assert(memcmp(read_space, check_val, 2048) == 0);
+    // FS_READ_FILE 5
+    assert(fs_read_file(fs, fd[0], read_space, 2048) == 2048);
+    assert(memcmp(read_space, check_val, 2048) == 0);
 
-//     // we have read 7 blocks. we have to jump ahead... 254 and then, eh, 1.5
-//     for (unsigned i = 0; i < 254; ++i) {
-//         assert(fs_read_file(fs, fd[0], read_space, 1024) == 1024);
-//         assert(memcmp(read_space, check_val, 1024) == 0);
-//     }
+    // we have read 7 blocks. we have to jump ahead... 254 and then, eh, 1.5
+    for (unsigned i = 0; i < 254; ++i) {
+        assert(fs_read_file(fs, fd[0], read_space, 1024) == 1024);
+        assert(memcmp(read_space, check_val, 1024) == 0);
+    }
 
-//     // FS_READ_FILE 6
-//     assert(fs_read_file(fs, fd[0], read_space, 1536) == 1536);
-//     assert(memcmp(read_space, check_val, 1536) == 0);
+    // FS_READ_FILE 6
+    assert(fs_read_file(fs, fd[0], read_space, 1536) == 1536);
+    assert(memcmp(read_space, check_val, 1536) == 0);
 
-//     // FS_READ_FILE 7
-//     assert(fs_read_file(NULL, fd[0], read_space, 10) < 0);
+    // FS_READ_FILE 7
+    assert(fs_read_file(NULL, fd[0], read_space, 10) < 0);
 
-//     // FS_READ_FILE 8
-//     assert(fs_read_file(fs, fd[0], NULL, 10, 0) < 0);
+    // FS_READ_FILE 8
+    assert(fs_read_file(fs, fd[0], NULL, 10, 0) < 0);
 
-//     // FS_READ_FILE 9
-//     assert(fs_read_file(fs, fd[0], read_space, 0) <= 0);
+    // FS_READ_FILE 9
+    assert(fs_read_file(fs, fd[0], read_space, 0) <= 0);
 
-//     // FS_READ_FILE 10
-//     // I've actually sortof lost track, but we should be within 4 blocks of then end (should be 512B left?)
-//     // Request 4 blocks, that should get us to EOF, then request more.
-//     assert(fs_read_file(fs, fd[0], read_space, 4096) > 0);
-//     // This shoudl fail, or return 0
-//     assert(fs_read_file(fs, fd[0], read_space, 4096) <= 0);
+    // FS_READ_FILE 10
+    // I've actually sortof lost track, but we should be within 4 blocks of then end (should be 512B left?)
+    // Request 4 blocks, that should get us to EOF, then request more.
+    assert(fs_read_file(fs, fd[0], read_space, 4096) > 0);
+    // This shoudl fail, or return 0
+    assert(fs_read_file(fs, fd[0], read_space, 4096) <= 0);
 
-//     assert(fs_unmount(fs) == 0);
+    assert(fs_unmount(fs) == 0);
 
-// }
+}
 
-// #else
+#else
 
 
-// // FS_WRITE_FILE
-// void tests_e() {
-//     // Terrible tests for a terrible function
+// FS_WRITE_FILE
+void tests_e() {
+    // Terrible tests for a terrible function
 
 
-//     // Once again, just borrow B's file.
-//     assert(system("cp b_tests_normal.f15fs e_tests_normal.f15fs") == 0);
+    // Once again, just borrow B's file.
+    assert(system("cp b_tests_normal.f15fs e_tests_normal.f15fs") == 0);
 
-//     const char *(test_fname[2]) = {"e_tests_normal.f15fs", "e_tests_full.f15fs"};
-//     const char *(filenames[13]) = {
-//         "/file", "/folder", "/folder/with_file", "/folder/with_folder",
-//         "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
-//         "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
-//         "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
-//     };
+    const char *(test_fname[2]) = {"e_tests_normal.f15fs", "e_tests_full.f15fs"};
+    const char *(filenames[13]) = {
+        "/file", "/folder", "/folder/with_file", "/folder/with_folder",
+        "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
+        "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
+        "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
+    };
 
-//     F15FS_t *fs = fs_mount(test_fname[0]);
-//     assert(fs);
+    F15FS_t *fs = fs_mount(test_fname[0]);
+    assert(fs);
 
-//     uint8_t file_data[4096];
-//     memset(file_data, 1, 4096);
+    uint8_t file_data[4096];
+    memset(file_data, 1, 4096);
 
 
-//     // FS_WRITE_FILE 1
-//     assert(fs_write_file(fs, filenames[2], file_data, 300, 0) == 300);
+    // FS_WRITE_FILE 1
+    assert(fs_write_file(fs, filenames[2], file_data, 300, 0) == 300);
 
-//     // FS_WRITE_FILE 2
-//     assert(fs_write_file(fs, filenames[2], file_data, 824, 200) == 824); // file[2] goes to 1024
+    // FS_WRITE_FILE 2
+    assert(fs_write_file(fs, filenames[2], file_data, 824, 200) == 824); // file[2] goes to 1024
 
-//     // FS_WRITE_FILE 3
-//     assert(fs_write_file(fs, filenames[0], file_data, 1024, 0) == 1024); // file[0] goes to 1024
+    // FS_WRITE_FILE 3
+    assert(fs_write_file(fs, filenames[0], file_data, 1024, 0) == 1024); // file[0] goes to 1024
 
-//     // FS_WRITE_FILE 4
-//     assert(fs_write_file(fs, filenames[0], file_data, 1024, 1024) == 1024); // file[0] goes to 2048 now
+    // FS_WRITE_FILE 4
+    assert(fs_write_file(fs, filenames[0], file_data, 1024, 1024) == 1024); // file[0] goes to 2048 now
 
-//     // FS_WRITE_FILE 5
-//     assert(fs_write_file(fs, filenames[0], file_data, 300, 2048) == 300); // file[0] goes to 2348 now
+    // FS_WRITE_FILE 5
+    assert(fs_write_file(fs, filenames[0], file_data, 300, 2048) == 300); // file[0] goes to 2348 now
 
-//     // FS_WRITE_FILE 6
-//     assert(fs_write_file(fs, filenames[0], file_data, 3795, 2048) == 3795); // file[0] goes to 6143 now, 1 before end of directs
-//     assert(fs_write_file(fs, filenames[0], file_data, 1025, 6143) == 1025); // file[0] goes to 7168, 1 block into indirect
+    // FS_WRITE_FILE 6
+    assert(fs_write_file(fs, filenames[0], file_data, 3795, 2048) == 3795); // file[0] goes to 6143 now, 1 before end of directs
+    assert(fs_write_file(fs, filenames[0], file_data, 1025, 6143) == 1025); // file[0] goes to 7168, 1 block into indirect
 
-//     // FS_WRITE_FILE 7
-//     for (int i = 0; i < 256; ++i) {
-//         assert(fs_write_file(fs, filenames[0], file_data, 1024, 7168 + i * 1024) == 1024);
-//     }
-//     // File's one block into double indirect
+    // FS_WRITE_FILE 7
+    for (int i = 0; i < 256; ++i) {
+        assert(fs_write_file(fs, filenames[0], file_data, 1024, 7168 + i * 1024) == 1024);
+    }
+    // File's one block into double indirect
 
-//     fs_unmount(fs);
+    fs_unmount(fs);
 
-//     assert(fs_format(test_fname[1]) == 0);
-//     fs = fs_mount(test_fname[1]);
-//     assert(fs);
+    assert(fs_format(test_fname[1]) == 0);
+    fs = fs_mount(test_fname[1]);
+    assert(fs);
 
-//     assert(fs_create_file(fs, filenames[0], REGULAR) == 0);
+    assert(fs_create_file(fs, filenames[0], REGULAR) == 0);
 
-//     // Going to fill the fs with a single file
-//     // That's 65239 blocks worth of file data
-//     // A file can hold 65798 blocks, but we have less in the block store
-//     // AND indirects and double indirects take up space
-//     // so it comes up to fewer blocks than you'd expect. A fresh F15FS has 65536 - 41 free (65495)
-//     // We get 6 directs through our inode, so 6 file blocks, 65489 free
-//     // now we have to start allocating indirects. We get one indirect in out inode, and it gives us 256 blocks
-//     // 262 file blocks, 1 overhead, 65232 free
-//     // Now we make our double indirect (and others, but taking this in steps), it is an overhead of 1 for 256 indirects
-//     // 262 file, 2 overhead, 65231 free
-//     // From here we have room for 256 indirects, each indirect taking 256 file blocks, and 1 overhead
-//     // 256 * 257 is 65792, though, so we don't max out the double indirect
-//     // 65231/257 = 253.81, so we get 254 indirects, but one isn't completely full
-//     // Not counting the contents of the partially filled indirect (but counting the indirect itself), we have
-//     // 65030 file blocks, 256 overhead, and 209 free, which goes in that last indirect, so in total, one file can take up
-//     // 65239 file blocks, with 256 overhead, and 0 free blocks remaining
+    // Going to fill the fs with a single file
+    // That's 65239 blocks worth of file data
+    // A file can hold 65798 blocks, but we have less in the block store
+    // AND indirects and double indirects take up space
+    // so it comes up to fewer blocks than you'd expect. A fresh F15FS has 65536 - 41 free (65495)
+    // We get 6 directs through our inode, so 6 file blocks, 65489 free
+    // now we have to start allocating indirects. We get one indirect in out inode, and it gives us 256 blocks
+    // 262 file blocks, 1 overhead, 65232 free
+    // Now we make our double indirect (and others, but taking this in steps), it is an overhead of 1 for 256 indirects
+    // 262 file, 2 overhead, 65231 free
+    // From here we have room for 256 indirects, each indirect taking 256 file blocks, and 1 overhead
+    // 256 * 257 is 65792, though, so we don't max out the double indirect
+    // 65231/257 = 253.81, so we get 254 indirects, but one isn't completely full
+    // Not counting the contents of the partially filled indirect (but counting the indirect itself), we have
+    // 65030 file blocks, 256 overhead, and 209 free, which goes in that last indirect, so in total, one file can take up
+    // 65239 file blocks, with 256 overhead, and 0 free blocks remaining
 
-//     for (unsigned i = 0; i < 65239; ++i) {
-//         assert(fs_write_file(fs, filenames[0], file_data, 1024, i * 1024) == 1024);
-//     }
-//     // File system is now FULL.
-//     // Throw in that test for FS_CREATE_FILE
+    for (unsigned i = 0; i < 65239; ++i) {
+        assert(fs_write_file(fs, filenames[0], file_data, 1024, i * 1024) == 1024);
+    }
+    // File system is now FULL.
+    // Throw in that test for FS_CREATE_FILE
 
-//     // FS_CREATE_FILE 13
-//     assert(fs_create_file(fs, filenames[1], DIRECTORY) < 0);
+    // FS_CREATE_FILE 13
+    assert(fs_create_file(fs, filenames[1], DIRECTORY) < 0);
 
-//     // FS_WRITE_FILE 9
-//     assert(fs_write_file(fs, filenames[0], file_data, 1024, 65495 * 1024) < 0); // out of room should be an error, not a 0 written
+    // FS_WRITE_FILE 9
+    assert(fs_write_file(fs, filenames[0], file_data, 1024, 65495 * 1024) < 0); // out of room should be an error, not a 0 written
 
-//     assert(fs_unmount(fs) == 0);
+    assert(fs_unmount(fs) == 0);
 
-//     fs = fs_mount(test_fname[0]);
-//     assert(fs);
+    fs = fs_mount(test_fname[0]);
+    assert(fs);
 
-//     // FS_WRITE_FILE 10
-//     assert(fs_write_file(fs, filenames[4], file_data, 300, 0) < 0);
+    // FS_WRITE_FILE 10
+    assert(fs_write_file(fs, filenames[4], file_data, 300, 0) < 0);
 
-//     // FS_WRITE_FILE 11
-//     assert(fs_write_file(fs, filenames[1], file_data, 300, 0) < 0);
+    // FS_WRITE_FILE 11
+    assert(fs_write_file(fs, filenames[1], file_data, 300, 0) < 0);
 
-//     // FS_WRITE_FILE 12
-//     assert(fs_write_file(fs, filenames[2], file_data, SIZE_MAX - 3, 10) < 0);
+    // FS_WRITE_FILE 12
+    assert(fs_write_file(fs, filenames[2], file_data, SIZE_MAX - 3, 10) < 0);
 
-//     // FS_WRITE_FILE 13
-//     assert(fs_write_file(NULL, filenames[2], file_data, 300, 0) < 0);
+    // FS_WRITE_FILE 13
+    assert(fs_write_file(NULL, filenames[2], file_data, 300, 0) < 0);
 
-//     // FS_WRITE_FILE 14
-//     assert(fs_write_file(fs, NULL, file_data, 300, 0) < 0);
+    // FS_WRITE_FILE 14
+    assert(fs_write_file(fs, NULL, file_data, 300, 0) < 0);
 
-//     // FS_WRITE_FILE 15
-//     assert(fs_write_file(fs, "", file_data, 300, 0) < 0);
+    // FS_WRITE_FILE 15
+    assert(fs_write_file(fs, "", file_data, 300, 0) < 0);
 
-//     // FS_WRITE_FILE 16
-//     assert(fs_write_file(fs, filenames[2], NULL, 300, 0) < 0);
+    // FS_WRITE_FILE 16
+    assert(fs_write_file(fs, filenames[2], NULL, 300, 0) < 0);
 
-//     // FS_WRITE_FILE 17
-//     assert(fs_write_file(fs, filenames[2], file_data, 0, 0) <= 0); // Allow an error or 0 written
+    // FS_WRITE_FILE 17
+    assert(fs_write_file(fs, filenames[2], file_data, 0, 0) <= 0); // Allow an error or 0 written
 
-//     // FS_WRITE_FILE 18
-//     assert(fs_write_file(fs, filenames[2], file_data, 300, 4096) < 0);
+    // FS_WRITE_FILE 18
+    assert(fs_write_file(fs, filenames[2], file_data, 300, 4096) < 0);
 
-//     assert(fs_unmount(fs) == 0);
+    assert(fs_unmount(fs) == 0);
 
-// }
+}
 
-// // FS_READ_FILE
-// void tests_f() {
+// FS_READ_FILE
+void tests_f() {
 
-//     assert(system("cp e_tests_normal.f15fs f_tests_normal.f15fs") == 0);
+    assert(system("cp e_tests_normal.f15fs f_tests_normal.f15fs") == 0);
 
-//     const char *test_fname = "f_tests_normal.f15fs";
-//     const char *(filenames[13]) = {
-//         "/file", "/folder", "/folder/with_file", "/folder/with_folder",
-//         "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
-//         "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
-//         "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
-//     };
+    const char *test_fname = "f_tests_normal.f15fs";
+    const char *(filenames[13]) = {
+        "/file", "/folder", "/folder/with_file", "/folder/with_folder",
+        "/DOESNOTEXIST", "/file/BAD_REQUEST", "/DOESNOTEXIST/with_file", "/folder/with_file/bad_req",
+        "folder/missing_slash", "/folder/new_folder/", "/folder/withwaytoolongfilenamethattakesupmorespacethanitshould/bad_req",
+        "/folder/withfilethatiswayyyyytoolongwhydoyoumakefilesthataretoobig", "/"
+    };
 
-//     // file 0 should go into double_indirect, file 2 goes to 1024
+    // file 0 should go into double_indirect, file 2 goes to 1024
 
-//     F15FS_t *fs = fs_mount(test_fname);
-//     assert(fs);
+    F15FS_t *fs = fs_mount(test_fname);
+    assert(fs);
 
-//     uint8_t read_space[4096];
-//     uint8_t check_val[4096];
-//     memset(check_val, 1, 4096); // Didn't actually write any other values
+    uint8_t read_space[4096];
+    uint8_t check_val[4096];
+    memset(check_val, 1, 4096); // Didn't actually write any other values
 
-//     // FS_READ_FILE 1
-//     assert(fs_read_file(fs, filenames[2], read_space, 300, 0) == 300);
-//     assert(memcmp(read_space, check_val, 300) == 0);
+    // FS_READ_FILE 1
+    assert(fs_read_file(fs, filenames[2], read_space, 300, 0) == 300);
+    assert(memcmp(read_space, check_val, 300) == 0);
 
-//     // FS_READ_FILE 2
-//     assert(fs_read_file(fs, filenames[0], read_space, 1024, 512) == 1024);
-//     assert(memcmp(read_space, check_val, 1024) == 0);
+    // FS_READ_FILE 2
+    assert(fs_read_file(fs, filenames[0], read_space, 1024, 512) == 1024);
+    assert(memcmp(read_space, check_val, 1024) == 0);
 
-//     // FS_READ_FILE 3
-//     assert(fs_read_file(fs, filenames[0], read_space, 1024, 1024) == 1024);
-//     assert(memcmp(read_space, check_val, 1024) == 0);
+    // FS_READ_FILE 3
+    assert(fs_read_file(fs, filenames[0], read_space, 1024, 1024) == 1024);
+    assert(memcmp(read_space, check_val, 1024) == 0);
 
-//     // FS_READ_FILE 4
-//     assert(fs_read_file(fs, filenames[0], read_space, 4096, 1024) == 4096);
-//     assert(memcmp(read_space, check_val, 4096) == 0);
+    // FS_READ_FILE 4
+    assert(fs_read_file(fs, filenames[0], read_space, 4096, 1024) == 4096);
+    assert(memcmp(read_space, check_val, 4096) == 0);
 
-//     // FS_READ_FILE 5
-//     assert(fs_read_file(fs, filenames[0], read_space, 4096, 4096) == 4096);
-//     assert(memcmp(read_space, check_val, 4096) == 0);
+    // FS_READ_FILE 5
+    assert(fs_read_file(fs, filenames[0], read_space, 4096, 4096) == 4096);
+    assert(memcmp(read_space, check_val, 4096) == 0);
 
-//     // FS_READ_FILE 6
-//     assert(fs_read_file(fs, filenames[0], read_space, 2048, 267264) == 2048);
-//     assert(memcmp(read_space, check_val, 1024) == 0);
+    // FS_READ_FILE 6
+    assert(fs_read_file(fs, filenames[0], read_space, 2048, 267264) == 2048);
+    assert(memcmp(read_space, check_val, 1024) == 0);
 
-//     // FS_READ_FILE 7
-//     assert(fs_read_file(fs, filenames[5], read_space, 300, 0) < 0);
+    // FS_READ_FILE 7
+    assert(fs_read_file(fs, filenames[5], read_space, 300, 0) < 0);
 
-//     // FS_READ_FILE 8
-//     assert(fs_read_file(fs, filenames[1], read_space, 300, 0) < 0);
+    // FS_READ_FILE 8
+    assert(fs_read_file(fs, filenames[1], read_space, 300, 0) < 0);
 
-//     // FS_READ_FILE 9
-//     assert(fs_read_file(NULL, filenames[0], read_space, 300, 0) < 0);
+    // FS_READ_FILE 9
+    assert(fs_read_file(NULL, filenames[0], read_space, 300, 0) < 0);
 
-//     // FS_READ_FILE 10
-//     assert(fs_read_file(fs, NULL, read_space, 300, 0) < 0);
+    // FS_READ_FILE 10
+    assert(fs_read_file(fs, NULL, read_space, 300, 0) < 0);
 
-//     // FS_READ_FILE 11
-//     assert(fs_read_file(fs, "", read_space, 300, 0) < 0);
+    // FS_READ_FILE 11
+    assert(fs_read_file(fs, "", read_space, 300, 0) < 0);
 
-//     // FS_READ_FILE 12
-//     assert(fs_read_file(fs, filenames[0], NULL, 300, 0) < 0);
+    // FS_READ_FILE 12
+    assert(fs_read_file(fs, filenames[0], NULL, 300, 0) < 0);
 
-//     // FS_READ_FILE 13
-//     assert(fs_read_file(fs, filenames[0], read_space, 0, 0) <= 0);
+    // FS_READ_FILE 13
+    assert(fs_read_file(fs, filenames[0], read_space, 0, 0) <= 0);
 
-//     // FS_READ_FILE 14
-//     assert(fs_read_file(fs, filenames[2], NULL, 300, 4173) < 0);
+    // FS_READ_FILE 14
+    assert(fs_read_file(fs, filenames[2], NULL, 300, 4173) < 0);
 
-//     // FS_READ_FILE 15
-//     assert(fs_read_file(fs, filenames[0], NULL, 300, 1024) < 0);
+    // FS_READ_FILE 15
+    assert(fs_read_file(fs, filenames[0], NULL, 300, 1024) < 0);
 
-//     assert(fs_unmount(fs) == 0);
+    assert(fs_unmount(fs) == 0);
 
-// }
-// #endif
+}
+#endif

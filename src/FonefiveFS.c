@@ -212,6 +212,7 @@ int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t*
         printf("dir size = %d\n",dir.metaData.size);
         for(i = 0; i < dir.metaData.size; i++){
             printf("insed SD name: %s\n",dir.entries[i].filename);
+            printf("insed SD inode: %d\n",dir.entries[i].inode);
             if(strcmp(dir.entries[i].filename,fname) == 0){
                 *inodeIndex = dir.entries[i].inode;
                 return 1;
@@ -239,6 +240,8 @@ int freeFilePath(char*** pathList){
 int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOutParams){
     if(fs && pathList && searchOutParams){
         int listSize = (int)*pathList[0];
+
+
         int i = 1;
         //start it at the root node
         inode_ptr_t currInode = ROOT_INODE;
@@ -247,6 +250,7 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
 
         for(i = 1; i < listSize + 1; i++){
             result = searchDir(fs, pathList[i], fs->inodeTable[parentInode].data_ptrs[0], &currInode);
+            printf("curr inode = %d",currInode);
             printf("Result is: %d\n",result);
             printf("looking for %s\n",pathList[i]);
             printf("list size %d, i = %d\n",listSize,i);
@@ -269,9 +273,10 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
 
             }
             else if(result == 1){
+            	printf("file name is %s",fs->inodeTable[currInode].fname);
+            	printf("::::file type is %" PRIu32 "\n",(uint32_t)fs->inodeTable[currInode].metaData.filetype);
                 if((listSize - i) != 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
                     parentInode = currInode;
-                    printf("continuing\n");
                     continue;
                 }
                 else if((listSize - i) == 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
@@ -400,10 +405,12 @@ int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileIno
         dir_block_t dir;
         if(block_store_read(fs->bs,fs->inodeTable[dirInode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
             if(dir.metaData.size < DIR_REC_MAX && strlen(fname) <= FNAME_MAX){
-                dir.entries[dir.metaData.size+1].inode = fileInode;
-                dir.entries[dir.metaData.size+1].ftype = ftype;
+                printf("file inode put in dir is %d\n",fileInode);
+                dir.entries[dir.metaData.size].inode = fileInode;
+                dir.entries[dir.metaData.size].ftype = ftype;
                 strcpy(dir.entries[dir.metaData.size].filename, fname);
                 printf("file  name p::: %s\n",dir.entries[dir.metaData.size].filename);
+                printf("file type is %" PRIu32 "\n",(uint32_t)ftype);
                 dir.metaData.size++;
                 //write the block back to the store
                 printf("size %d\n",dir.metaData.size);
@@ -433,6 +440,7 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
     //param check
     if(fs && fname && strcmp(fname,"") != 0 && strcmp(fname,"/") != 0&& ftype){
         int emptyiNodeIndex = findEmptyInode(fs);
+        printf("empyt idex is %d\n",emptyiNodeIndex);
         char **pathList = NULL;
         int listSize = 0;
         search_dir_t dirInfo;
@@ -491,9 +499,9 @@ int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const reco
     return -1;
 }
 
-block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite, void *data, size_t offset,size_t nbytes,size_t *needToAllocate, block_ptr_t blockId){
-    if(fs && *dataLeftTOWrite > 0 && data && nbytes > 0){
-        size_t dataOffset = nbytes - *dataLeftTOWrite;
+block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite, const void *data, size_t offset,size_t nbyte,size_t *needToAllocate, block_ptr_t blockId){
+    if(fs && *dataLeftTOWrite > 0 && data && nbyte > 0){
+        size_t dataOffset = nbyte - *dataLeftTOWrite;
         size_t bytesToWrite = 0;
 
         if(BLOCK_IDX_VALID(blockId) && needToAllocate > 0){
@@ -537,15 +545,15 @@ block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite, void *da
     exit(-1);
 }
 
-size_t writeIndirectBlock(fs,&dataLeftTOWrite,data,nbytes,needToAllocate,blocksUsed,indirectBlockId){
-    if(fs && *dataLeftTOWrite > 0 && data && nbytes > 0 && ){
+block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data,size_t nbyte,size_t needToAllocate,size_t blocksUsed,block_ptr_t indirectBlockId){
+    if(fs && *dataLeftTOWrite > 0 && data && nbyte > 0){
         indirect_block_t indirectBlock;
         size_t bytesToWrite = 0;
         size_t i = 0;
         size_t CurrBlockToWrite = blocksUsed - DIRECT_TOTAL;
 
         //already alocated
-        if(BLOCK_IDX_VALID(blockId) && CurrBlockToWrite > 0){
+        if(BLOCK_IDX_VALID(indirectBlockId) && CurrBlockToWrite > 0){
             if(block_store_read(fs->bs,indirectBlockId,&indirectBlock,BLOCK_SIZE,0) == BLOCK_SIZE){
                 if(*dataLeftTOWrite < ((INDIRECT_TOTAL - CurrBlockToWrite - 1)*BLOCK_SIZE)){
                     bytesToWrite = *dataLeftTOWrite;
@@ -556,7 +564,7 @@ size_t writeIndirectBlock(fs,&dataLeftTOWrite,data,nbytes,needToAllocate,blocksU
                 size_t tempBytesToWrite = bytesToWrite;
                 i = CurrBlockToWrite;
                 while(bytesToWrite > 0){
-                    indirectBlock[i] = writeDirectBLock(fs,&bytesToWrite,data,0,nbytes,0,0);
+                    indirectBlock.direct_ptr[i] = writeDirectBLock(fs,&bytesToWrite,data,0,nbyte,0,0);
                     i++;
                 }
                 *dataLeftTOWrite -= tempBytesToWrite;
@@ -567,7 +575,7 @@ size_t writeIndirectBlock(fs,&dataLeftTOWrite,data,nbytes,needToAllocate,blocksU
         }
         else{
 
-            if(*dataLeftTOWrite < (INDIRECT_TOTAL*BLOCK_SIZE){
+            if(*dataLeftTOWrite < (INDIRECT_TOTAL*BLOCK_SIZE)){
                 bytesToWrite = *dataLeftTOWrite;
             }
             else{
@@ -577,7 +585,7 @@ size_t writeIndirectBlock(fs,&dataLeftTOWrite,data,nbytes,needToAllocate,blocksU
             indirectBlockId = block_store_allocate(fs->bs);
             size_t tempBytesToWrite = bytesToWrite;
             while(bytesToWrite > 0){
-                indirectBlock[i] = writeDirectBLock(fs,&bytesToWrite,data,0,nbytes,0,0);
+                indirectBlock.direct_ptr[i] = writeDirectBLock(fs,&bytesToWrite,data,0,nbyte,0,0);
                 i++;
             }
             *dataLeftTOWrite -= tempBytesToWrite;
@@ -599,9 +607,9 @@ size_t writeIndirectBlock(fs,&dataLeftTOWrite,data,nbytes,needToAllocate,blocksU
 /// \return ammount written, < 0 on error
 ///
 ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *data, size_t nbyte, size_t offset){
-    if(fs && fname && fname[0] && data && nbytes > 0 && (offset + nbyte) < FILE_SIZE_MAX){
+    if(fs && fname && fname[0] && data && nbyte > 0 && (offset + nbyte) < FILE_SIZE_MAX){
         char **pathList = NULL;
-        int listSize = 0;
+        //int listSize = 0;
         size_t currFileSize = 0;
         size_t blocksUsed = 0;
         size_t needToAllocate = 0;
@@ -614,11 +622,11 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
 
             if(getInodeFromPath(fs,pathList, &dirInfo) > 0){
                 //set up the
-                listSize = (int)*pathList[0];
-                currFileIndex = dirInfo->inode;
+                // listSize = (int)*pathList[0];
+                currFileIndex = dirInfo.inode;
                 currFileSize = fs->inodeTable[currFileIndex].metaData.size;
                 if(offset > currFileSize){
-                    fprintf(stderr, "Offset bigger than size, this leaves holes\n", );
+                    fprintf(stderr, "Offset bigger than size, this leaves holes\n");
                     return -1;
                 }
                 //check when its time to start adding new blocks instead of writing over them
@@ -628,15 +636,15 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
 
                 while(dataLeftTOWrite != 0){
                     if(blocksUsed >= 0 || blocksUsed <= DIRECT_TOTAL-1){
-                        fs->inodeTable[currFileIndex].data_ptrs[blocksUsed] = writeDirectBLock(fs,&dataLeftTOWrite,data,OFFSET_IN_BLOCK(offset),nbytes,needToAllocate,fs->inodeTable[currFileIndex].data_ptrs[blocksUsed]);
+                        fs->inodeTable[currFileIndex].data_ptrs[blocksUsed] = writeDirectBLock(fs,&dataLeftTOWrite,data,OFFSET_IN_BLOCK(offset),nbyte,&needToAllocate,fs->inodeTable[currFileIndex].data_ptrs[blocksUsed]);
                     }
                     else if(blocksUsed >= DIRECT_TOTAL || blocksUsed < INDIRECT_TOTAL){
-                        fprintf("testing not able to handle that big of a file yet\n");
+                        fprintf(stderr,"testing not able to handle that big of a file yet\n");
                         exit(-1);
-                        //fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL] = writeIndirectBlock(fs,&dataLeftTOWrite,data,nbytes,needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL]) <= 0)
+                        //fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL] = writeIndirectBlock(fs,&dataLeftTOWrite,data,nbyte,needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL]) <= 0)
                     }
                     else if(blocksUsed >= INDIRECT_TOTAL || blocksUsed < DBL_INDIRECT_TOTAL){
-                        fprintf("have not implemented the ability for that big of a file\n");
+                        fprintf(stderr,"have not implemented the ability for that big of a file\n");
                         exit(-1);
                     }
                     else{
@@ -644,7 +652,7 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
                         return -1;
                     }
                 }
-                fs->inodeTable[currFileIndex].metaData.size += nbytes;
+                fs->inodeTable[currFileIndex].metaData.size += nbyte;
                 return 0;
 
             }
@@ -654,7 +662,7 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
         fprintf(stderr,"failed to parse filepath\n");
         return -1;
     }
-    fprintf(stderr, "bad params while writing\n", );
+    fprintf(stderr, "bad params while writing\n");
     return -1;
 }
 
@@ -669,7 +677,7 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
 /// \return ammount read, < 0 on error
 ///
 ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, size_t nbyte, size_t offset){
-
+	return 0;
 }
 
 ///
