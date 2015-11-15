@@ -17,8 +17,22 @@ typedef enum {
 // and the number of things a directory can contain
 // Have to be exposed in the header for the record structure, which is annoying
 // But the other option is to add more functions to parse and handle that struct
+#define BLOCK_SIZE 1024
 #define FNAME_MAX 47
 #define DIR_REC_MAX 20
+//#define BLOCK_IDX_VALID(block_idx) ((block_idx) >= DATA_BLOCK_OFFSET && (block_idx) < DATA_BLOCK_MAX)
+#define DIRECT_TOTAL 6
+#define INDIRECT_TOTAL (BLOCK_SIZE / sizeof(block_ptr_t))
+#define DBL_INDIRECT_TOTAL (INDIRECT_TOTAL * INDIRECT_TOTAL)
+#define FILE_SIZE_MAX ((DIRECT_TOTAL + INDIRECT_TOTAL + DBL_INDIRECT_TOTAL) * BLOCK_SIZE)
+#define CURR_BLOCK_INDEX(size) (((size)+1) / BLOCK_SIZE)
+#define BLOCKS_NEEDED(size) (((size)+(BLOCK_SIZE-1))/BLOCK_SIZE)
+#define OFFSET_IN_BLOCK(size) ((size) % BLOCK_SIZE)
+#define BLOCK_IDX_VALID(block_idx) ((block_idx) >= DATA_BLOCK_OFFSET && (block_idx) < DATA_BLOCK_MAX)
+
+
+
+
 
 typedef uint8_t inode_ptr_t;
 typedef uint32_t block_ptr_t;
@@ -28,7 +42,8 @@ typedef struct metaData{
     ftype_t filetype;
     //1 means
     char inUse;
-	char placeholder[42];
+    uint32_t size;
+	char placeholder[38];
 } inode_meta_data_t;
 
 //the individuale inodes
@@ -84,6 +99,10 @@ typedef struct {
     inode_ptr_t inode;
     inode_ptr_t parentDir;
 }search_dir_t;
+
+typedef struct{
+    block_ptr_t direct_ptr[32];
+}indirect_block_t;
 ///
 /// Creates a new F15FS file at the given location
 /// \param fname The file to create (or overwrite)

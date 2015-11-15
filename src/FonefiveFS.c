@@ -469,7 +469,7 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
 /// \return 0 on success, < 0 on error
 ///
 int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const records){
-    if(fs && fname && strcmp(fname, "") != 0 && records){
+    if(fs && fname && fname[0] && records){
         char** pathList = NULL;
         search_dir_t dirInfo;
         if(parseFilePath(fname, &pathList) > 0){
@@ -491,6 +491,23 @@ int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const reco
     return -1;
 }
 
+block_ptr_t writeDirectBLock(fs,&dataLeftTOWrite,data,offset,nbytes,needToAllocate, blockId){
+    if(fs && *dataLeftTOWrite > 0 && data && nbytes > 0){
+        size_t dataOffset = nbytes - *dataLeftTOWrite;
+
+        if(BLOCK_IDX_VALID(blockId) && needToAllocate > 0){
+
+        }
+        else{
+
+        }
+
+
+    }
+    //return greatest value for errors
+    return (uint32_t)-1;
+}
+
 ///
 /// Writes nbytes from the given buffer to the specified file and offset
 /// Increments the read/write position of the descriptor by the ammount written
@@ -501,7 +518,56 @@ int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const reco
 /// \param offset the offset in the file to begin writing to
 /// \return ammount written, < 0 on error
 ///
-ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *data, size_t nbyte, size_t offset);
+ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *data, size_t nbyte, size_t offset){
+    if(fs && fname && fname[0] && data && nbytes > 0 && (offset + nbyte) < FILE_SIZE_MAX){
+        char **pathList = NULL;
+        int listSize = 0;
+        size_t currFileSize = 0;
+        size_t blocksUsed = 0;
+        size_t needToAllocate = 0;
+        //if something goes wrong it wont try and write set to zero
+        size_t dataLeftTOWrite = 0;
+        inode_ptr_t currFileIndex = 0;
+        search_dir_t dirInfo;
+
+        if(parseFilePath(fname,&pathList) > 0){
+
+            if(getInodeFromPath(fs,pathList, &dirInfo) > 0){
+                //set up the
+                listSize = (int)*pathList[0];
+                currFileIndex = dirInfo->inode;
+                currFileSize = fs->inodeTable[currFileIndex].metaData.size;
+                if(offset > currFileSize){
+                    fprintf(stderr, "Offset bigger than size, this leaves holes\n", );
+                    return -1;
+                }
+                //check when its time to start adding new blocks instead of writing over them
+                needToAllocate = currFileSize - offset;
+                blocksUsed = CURR_BLOCK_INDEX(offset);
+                dataLeftTOWrite = nbyte;
+
+                while(dataLeftTOWrite != 0){
+                    if(blocksUsed >= 0 || blocksUsed <= DIRECT_TOTAL-1){
+                        fs->inodeTable[currFileIndex].data_ptrs[blocksUsed] = writeDirectBLock(fs,&dataLeftTOWrite,data,OFFSET_IN_BLOCK(offset),nbytes,needToAllocate,fs->inodeTable[currFileIndex].data_ptrs[blocksUsed]);
+                    }
+                    else if(blocksUsed >= DIRECT_TOTAL || blocksUsed < INDIRECT_TOTAL){
+
+                    }
+                    else if(blocksUsed >= INDIRECT_TOTAL || blocksUsed < DBL_INDIRECT_TOTAL){
+
+                    }
+                    else{
+                        fprintf(stderr,"file to big after already checked, so pretty weird error\n");
+                        return -1;
+                    }
+                }
+
+            }
+        }
+    }
+    fprintf(stderr, "bad params while writing\n", );
+    return -1;
+}
 
 ///
 /// Reads nbytes from the specified file and offset to the given data pointer
@@ -513,7 +579,9 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
 /// \param offset the offset in the file to begin reading from
 /// \return ammount read, < 0 on error
 ///
-ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, size_t nbyte, size_t offset);
+ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, size_t nbyte, size_t offset){
+
+}
 
 ///
 /// Removes a file. (Note: Directories cannot be deleted unless empty)
