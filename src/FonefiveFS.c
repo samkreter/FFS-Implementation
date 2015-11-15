@@ -491,21 +491,101 @@ int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const reco
     return -1;
 }
 
-block_ptr_t writeDirectBLock(fs,&dataLeftTOWrite,data,offset,nbytes,needToAllocate, blockId){
+block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite, void *data, size_t offset,size_t nbytes,size_t *needToAllocate, block_ptr_t blockId){
     if(fs && *dataLeftTOWrite > 0 && data && nbytes > 0){
         size_t dataOffset = nbytes - *dataLeftTOWrite;
+        size_t bytesToWrite = 0;
 
         if(BLOCK_IDX_VALID(blockId) && needToAllocate > 0){
+            if(*dataLeftTOWrite < BLOCK_SIZE - offset){
+                bytesToWrite = *dataLeftTOWrite;
+            }
+            else{
+                bytesToWrite = BLOCK_SIZE - offset;
+            }
 
+            if(block_store_write(fs->bs,blockId,INCREMENT_VOID_PTR(data,dataOffset),bytesToWrite,offset) == bytesToWrite){
+                *dataLeftTOWrite -= bytesToWrite;
+                *needToAllocate -= bytesToWrite;
+                return blockId;
+            }
+            fprintf(stderr,"failed to write to hd when writing direct block\n");
+            exit(-1);
         }
         else{
 
+            blockId = block_store_allocate(fs->bs);
+
+            if(*dataLeftTOWrite < BLOCK_SIZE - offset){
+                bytesToWrite = *dataLeftTOWrite;
+            }
+            else{
+                bytesToWrite = BLOCK_SIZE - offset;
+            }
+
+            if(block_store_write(fs->bs,blockId,INCREMENT_VOID_PTR(data,dataOffset),bytesToWrite,offset) == bytesToWrite){
+                *dataLeftTOWrite -= bytesToWrite;
+                return blockId;
+            }
+            fprintf(stderr,"failed to write to hd when writing direct block\n");
+            exit(-1);
         }
 
 
     }
-    //return greatest value for errors
-    return (uint32_t)-1;
+    fprintf(stderr,"Failed params check when writing direct block\n");
+    exit(-1);
+}
+
+size_t writeIndirectBlock(fs,&dataLeftTOWrite,data,nbytes,needToAllocate,blocksUsed,indirectBlockId){
+    if(fs && *dataLeftTOWrite > 0 && data && nbytes > 0 && ){
+        indirect_block_t indirectBlock;
+        size_t bytesToWrite = 0;
+        size_t i = 0;
+        size_t CurrBlockToWrite = blocksUsed - DIRECT_TOTAL;
+
+        //already alocated
+        if(BLOCK_IDX_VALID(blockId) && CurrBlockToWrite > 0){
+            if(block_store_read(fs->bs,indirectBlockId,&indirectBlock,BLOCK_SIZE,0) == BLOCK_SIZE){
+                if(*dataLeftTOWrite < ((INDIRECT_TOTAL - CurrBlockToWrite - 1)*BLOCK_SIZE)){
+                    bytesToWrite = *dataLeftTOWrite;
+                }
+                else{
+                    bytesToWrite = ((INDIRECT_TOTAL - CurrBlockToWrite - 1)*BLOCK_SIZE);
+                }
+                size_t tempBytesToWrite = bytesToWrite;
+                i = CurrBlockToWrite;
+                while(bytesToWrite > 0){
+                    indirectBlock[i] = writeDirectBLock(fs,&bytesToWrite,data,0,nbytes,0,0);
+                    i++;
+                }
+                *dataLeftTOWrite -= tempBytesToWrite;
+                return indirectBlockId;
+            }
+            fprintf(stderr, "Problem reading indirect block from hd\n");
+            exit(-1);
+        }
+        else{
+
+            if(*dataLeftTOWrite < (INDIRECT_TOTAL*BLOCK_SIZE){
+                bytesToWrite = *dataLeftTOWrite;
+            }
+            else{
+                bytesToWrite = INDIRECT_TOTAL * BLOCK_SIZE;
+            }
+
+            indirectBlockId = block_store_allocate(fs->bs);
+            size_t tempBytesToWrite = bytesToWrite;
+            while(bytesToWrite > 0){
+                indirectBlock[i] = writeDirectBLock(fs,&bytesToWrite,data,0,nbytes,0,0);
+                i++;
+            }
+            *dataLeftTOWrite -= tempBytesToWrite;
+            return indirectBlockId;
+        }
+    }
+    fprintf(stderr, "failed param check while writing to indirect block\n");
+    exit(-1);
 }
 
 ///
@@ -551,19 +631,28 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
                         fs->inodeTable[currFileIndex].data_ptrs[blocksUsed] = writeDirectBLock(fs,&dataLeftTOWrite,data,OFFSET_IN_BLOCK(offset),nbytes,needToAllocate,fs->inodeTable[currFileIndex].data_ptrs[blocksUsed]);
                     }
                     else if(blocksUsed >= DIRECT_TOTAL || blocksUsed < INDIRECT_TOTAL){
-
+                        fprintf("testing not able to handle that big of a file yet\n");
+                        exit(-1);
+                        //fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL] = writeIndirectBlock(fs,&dataLeftTOWrite,data,nbytes,needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL]) <= 0)
                     }
                     else if(blocksUsed >= INDIRECT_TOTAL || blocksUsed < DBL_INDIRECT_TOTAL){
-
+                        fprintf("have not implemented the ability for that big of a file\n");
+                        exit(-1);
                     }
                     else{
                         fprintf(stderr,"file to big after already checked, so pretty weird error\n");
                         return -1;
                     }
                 }
+                fs->inodeTable[currFileIndex].metaData.size += nbytes;
+                return 0;
 
             }
+            fprintf(stderr,"Could not find file to write\n");
+            return -1;
         }
+        fprintf(stderr,"failed to parse filepath\n");
+        return -1;
     }
     fprintf(stderr, "bad params while writing\n", );
     return -1;

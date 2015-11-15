@@ -29,7 +29,7 @@ typedef enum {
 #define BLOCKS_NEEDED(size) (((size)+(BLOCK_SIZE-1))/BLOCK_SIZE)
 #define OFFSET_IN_BLOCK(size) ((size) % BLOCK_SIZE)
 #define BLOCK_IDX_VALID(block_idx) ((block_idx) >= DATA_BLOCK_OFFSET && (block_idx) < DATA_BLOCK_MAX)
-
+#define INCREMENT_VOID_PTR(v_ptr, increment) (((uint8_t *)v_ptr) + (increment))
 
 
 
