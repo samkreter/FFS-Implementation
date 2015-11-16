@@ -230,6 +230,21 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
 /// 
 block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data, size_t offset,size_t nbytes,size_t *needToAllocate, block_ptr_t blockId);
 
+
+///
+/// read from a direct block
+/// \param fs current file system
+/// \param dataLeftToread the bytes that still have to be read from teh file
+/// \param data the buffer to put the read in data
+/// \param offset the amount to offset the blcok when reading from it
+/// \param nbyte the total amount of bytes to read
+/// \param blockId the block id to read from
+/// \return <0 for errors
+///
+int readDirectBLock(F15FS_t *const fs,size_t *dataLeftTORead,const void *data, size_t offset, size_t nbyte, size_t blockId);
+
+
+
 ///
 /// Mounts the specified file and returns an F15FS object
 /// \param fname the file to load
