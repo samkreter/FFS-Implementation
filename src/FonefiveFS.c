@@ -210,15 +210,10 @@ int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t*
 	    dir_block_t dir;
 	    if(block_store_read(fs->bs,blockNum,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
 	        int i = 0;
-	        printf("dir size = %d\n",dir.metaData.size);
 	        for(i = 0; i < dir.metaData.size; i++){
 	            if(i > 20){
 	            	return -1;
 	            }
-	            printf("insed SD name: %s\n",dir.entries[i].filename);
-	            printf("insed SD inode: %d\n",dir.entries[i].inode);
-	            printf("dir size is %d",dir.metaData.size);
-	            printf("fname is %s\n",fname);
 	            if(strcmp(dir.entries[i].filename,fname) == 0){
 	                *inodeIndex = dir.entries[i].inode;
 	                return 1;
@@ -260,31 +255,24 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
 
         for(i = 1; i < listSize + 1; i++){
             result = searchDir(fs, pathList[i], fs->inodeTable[parentInode].data_ptrs[0], &currInode);
-            printf("curr inode = %d",currInode);
-            printf("Result is: %d\n",result);
-            printf("looking for %s\n",pathList[i]);
-            printf("list size %d, i = %d\n",listSize,i);
             if(result == 0){
                 //not found but at the end of list, populate with parent direct
                 //for creating a file in that spot
                 if((listSize - i) == 0){
                     searchOutParams->found = 0;
                     searchOutParams->parentDir = parentInode;
-                    printf("empty and not found\n");
                     return 0;
                 }
                 else{
                     //bad path
                     searchOutParams->found = 0;
-                    printf("bad path1\n");
+                    fprintf(stderr,"bad path 1\n");
                     return -1;
                 }
 
 
             }
             else if(result == 1){
-            	printf("file name is %s",fs->inodeTable[currInode].fname);
-            	printf("::::file type is %" PRIu32 "\n",(uint32_t)fs->inodeTable[currInode].metaData.filetype);
                 if((listSize - i) != 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
                     parentInode = currInode;
                     continue;
@@ -294,31 +282,27 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
                     searchOutParams->found = 1;
                     searchOutParams->parentDir = parentInode;
                     searchOutParams->inode = currInode;
-                    printf("can't end with directory1\n");
                     return -2;
                 }
                 else if((listSize - i) != 0 && fs->inodeTable[currInode].metaData.filetype == REGULAR){
                     //can't have file not at end of path
-                    printf("can't have file not at end of file\n");
                     return -3;
                 }
                 else if((listSize - i) == 0 && fs->inodeTable[currInode].metaData.filetype == REGULAR){
                     searchOutParams->found = 1;
                     searchOutParams->parentDir = parentInode;
                     searchOutParams->inode = currInode;
-                    printf("all good found file\n");
                     return 1;
                 }
             }
 
 
          }
-         printf("nobdy likes you\n");
-         return 1;
+         return -1;
 
     }
     //bad params
-    printf("bad parasm2\n");
+    fprintf(stderr,"bad params while getting inode\n");
     return -1;
 }
 
@@ -418,27 +402,23 @@ int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileIno
         dir_block_t dir;
         if(block_store_read(fs->bs,fs->inodeTable[dirInode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
             if(dir.metaData.size < DIR_REC_MAX && strlen(fname) <= FNAME_MAX){
-                printf("file inode put in dir is %d\n",fileInode);
                 dir.entries[dir.metaData.size].inode = fileInode;
                 dir.entries[dir.metaData.size].ftype = ftype;
                 strcpy(dir.entries[dir.metaData.size].filename, fname);
-                printf("file  name p::: %s\n",dir.entries[dir.metaData.size].filename);
-                printf("file type is %" PRIu32 "\n",(uint32_t)ftype);
                 dir.metaData.size++;
                 //write the block back to the store
-                printf("size %d\n",dir.metaData.size);
                 if(block_store_write(fs->bs,fs->inodeTable[dirInode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
                     return 1;
                 }
-                printf("failed to write to block afto din\n");
+                fprintf(stderr,"failed to write to block afto din\n");
             }
-            printf("couldn't add to dir1\n");
+            fprintf(stderr,"couldn't add to dir1\n");
             return -1;
         }
-        printf("coulnd't add to dir 2\n");
+        fprintf(stderr,"coulnd't add to dir 2\n");
         return -1;
     }
-    printf("bad params addto din\n");
+    fprintf(stderr,"bad params addto din\n");
     return -1;
 }
 
@@ -457,7 +437,6 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
         	fprintf(stderr, "No empty Inodes\n");
         	return -1;
         }
-        printf("empyt idex is %d\n",emptyiNodeIndex);
         char **pathList = NULL;
         int listSize = 0;
         search_dir_t dirInfo;
@@ -506,7 +485,6 @@ int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const reco
         //this is kind of hacky but i'm running out of time
         //and this is the first time I have ever used a goto ever
         if(strcmp(fname,"/") == 0){
-        	printf("++++++++++++++++++++++++++++++++++++==got into goto\n");
         	dirInfo.inode = 0;
         	goto RootSearch; 
         }
@@ -673,14 +651,12 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
                 while(dataLeftTOWrite != 0){
                 	//printf("data wrirte: %lu\n",dataLeftTOWrite);
                 	blocksUsed = CURR_BLOCK_INDEX(offset);
-                	printf("blocksused = %lu\n",blocksUsed);
                     if(blocksUsed >= 0 && blocksUsed < DIRECT_TOTAL){
                         fs->inodeTable[currFileIndex].data_ptrs[blocksUsed] = writeDirectBLock(fs,&dataLeftTOWrite,data,OFFSET_IN_BLOCK(offset),nbyte,&needToAllocate,fs->inodeTable[currFileIndex].data_ptrs[blocksUsed]);
                     	offset += (dataWriten - dataLeftTOWrite);
                     	dataWriten = dataLeftTOWrite;
                     }
                     else if(blocksUsed >= DIRECT_TOTAL && blocksUsed < INDIRECT_TOTAL){
-                        printf("in the indirect\n");
                         fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL] = writeIndirectBlock(fs,&dataLeftTOWrite,data,nbyte,needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL]);
                     	offset += (dataWriten - dataLeftTOWrite);
                     	dataWriten = dataLeftTOWrite;

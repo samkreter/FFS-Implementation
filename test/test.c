@@ -754,31 +754,29 @@ void tests_e() {
     uint8_t file_data[4096];
     memset(file_data, 1, 4096);
 
-    printf("1++++++++++++++++++++++++++++++++\n");
+
     // FS_WRITE_FILE 1
     assert(fs_write_file(fs, filenames[2], file_data, 300, 0) == 300);
-    printf("2++++++++++++++++++++++++++++++++\n");
+
     // FS_WRITE_FILE 2
     assert(fs_write_file(fs, filenames[2], file_data, 824, 200) == 824); // file[2] goes to 1024
-    printf("3++++++++++++++++++++++++++++++++\n");
+
     // FS_WRITE_FILE 3
     assert(fs_write_file(fs, filenames[0], file_data, 1024, 0) == 1024); // file[0] goes to 1024
-    printf("4++++++++++++++++++++++++++++++++\n");
+
     // FS_WRITE_FILE 4
     assert(fs_write_file(fs, filenames[0], file_data, 1024, 1024) == 1024); // file[0] goes to 2048 now
-    printf("5++++++++++++++++++++++++++++++++\n");
+
     // FS_WRITE_FILE 5
     assert(fs_write_file(fs, filenames[0], file_data, 300, 2048) == 300); // file[0] goes to 2348 now
-    printf("6++++++++++++++++++++++++++++++++\n");
+
     // FS_WRITE_FILE 6
     assert(fs_write_file(fs, filenames[0], file_data, 3795, 2048) == 3795); // file[0] goes to 6143 now, 1 before end of directs
-    printf("7++++++++++++++++++++++++++++++++\n");
     assert(fs_write_file(fs, filenames[0], file_data, 1025, 6143) == 1025); // file[0] goes to 7168, 1 block into indirect
-    printf("8++++++++++++++++++++++++++++++++\n");
+
     // FS_WRITE_FILE 7
     for (int i = 0; i < 256; ++i) {
         assert(fs_write_file(fs, filenames[0], file_data, 1024, 7168 + i * 1024) == 1024);
-        printf("%d++++++++++++++++++++++++++++++\n",i+8);
     }
     // File's one block into double indirect
 
@@ -810,7 +808,6 @@ void tests_e() {
     for (unsigned i = 0; i < 65239; ++i) {
         assert(fs_write_file(fs, filenames[0], file_data, 1024, i * 1024) == 1024);
     }
-    printf("filled the hole thing ________________________n\n");
     // File system is now FULL.
     // Throw in that test for FS_CREATE_FILE
 
