@@ -422,13 +422,7 @@ int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileIno
     return -1;
 }
 
-///
-/// Creates a new file in the given F15FS object
-/// \param fs the F15FS file
-/// \param fname the file to create
-/// \param ftype the type of file to create
-/// \return 0 on success, < 0 on error
-///
+
 int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t ftype){
     //param check
     if(fs && fname && strcmp(fname,"") != 0 && strcmp(fname,"/") != 0&& ftype){
@@ -469,13 +463,7 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
     return -1;
 }
 
-///
-/// Returns the contents of a directory
-/// \param fs the F15FS file
-/// \param fname the file to query
-/// \param records the record object to fill
-/// \return 0 on success, < 0 on error
-///
+
 int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const records){
     if(fs && fname && fname[0] && records){
         char** pathList = NULL;
@@ -610,16 +598,7 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
     exit(-1);
 }
 
-///
-/// Writes nbytes from the given buffer to the specified file and offset
-/// Increments the read/write position of the descriptor by the ammount written
-/// \param fs the F15FS file
-/// \param fname the name of the file
-/// \param data the buffer to read from
-/// \param nbyte the number of bytes to write
-/// \param offset the offset in the file to begin writing to
-/// \return ammount written, < 0 on error
-///
+
 ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *data, size_t nbyte, size_t offset){
     if(fs && fname && fname[0] && data && nbyte > 0 && (offset + nbyte) < FILE_SIZE_MAX){
         char **pathList = NULL;
@@ -713,16 +692,7 @@ int readDirectBLock(F15FS_t *const fs,size_t *dataLeftTORead,const void *data, s
 }
 
 
-///
-/// Reads nbytes from the specified file and offset to the given data pointer
-/// Increments the read/write position of the descriptor by the ammount read
-/// \param fs the F15FS file
-/// \param fname the name of the file to read from
-/// \param data the buffer to write to
-/// \param nbyte the number of bytes to read
-/// \param offset the offset in the file to begin reading from
-/// \return ammount read, < 0 on error
-///
+
 ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, size_t nbyte, size_t offset){
 	if(fs && fname && fname[0] && data && nbyte > 0){
 		
