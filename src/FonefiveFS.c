@@ -534,7 +534,9 @@ block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite, const vo
     if(fs && *dataLeftTOWrite > 0 && data && nbyte > 0){
         size_t dataOffset = nbyte - *dataLeftTOWrite;
         size_t bytesToWrite = 0;
-
+        if(blockId > 65232){
+        	return (uint32_t)-1;
+        }
         if(BLOCK_IDX_VALID(blockId) && needToAllocate > 0){
             if(*dataLeftTOWrite < BLOCK_SIZE - offset){
                 bytesToWrite = *dataLeftTOWrite;
@@ -596,6 +598,9 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
                 i = CurrBlockToWrite;
                 while(bytesToWrite > 0){
                     indirectBlock.direct_ptr[i] = writeDirectBLock(fs,&bytesToWrite,data,0,nbyte,0,0);
+                    if(indirectBlock.direct_ptr[i] == (uint32_t)-1){
+                    	return (uint32_t)-1;
+                    }
                     i++;
                 }
                 *dataLeftTOWrite -= tempBytesToWrite;
@@ -644,6 +649,7 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
         size_t currFileSize = 0;
         size_t blocksUsed = 0;
         size_t needToAllocate = 0;
+        size_t dataWriten = 0;
         //if something goes wrong it wont try and write set to zero
         size_t dataLeftTOWrite = 0;
         inode_ptr_t currFileIndex = 0;
@@ -662,20 +668,26 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
                 }
                 //check when its time to start adding new blocks instead of writing over them
                 needToAllocate = currFileSize - offset;
-                blocksUsed = CURR_BLOCK_INDEX(offset);
                 dataLeftTOWrite = nbyte;
-
+                dataWriten = dataLeftTOWrite;
                 while(dataLeftTOWrite != 0){
-                    if(blocksUsed >= 0 || blocksUsed <= DIRECT_TOTAL-1){
+                	//printf("data wrirte: %lu\n",dataLeftTOWrite);
+                	blocksUsed = CURR_BLOCK_INDEX(offset);
+                	printf("blocksused = %lu\n",blocksUsed);
+                    if(blocksUsed >= 0 && blocksUsed < DIRECT_TOTAL){
                         fs->inodeTable[currFileIndex].data_ptrs[blocksUsed] = writeDirectBLock(fs,&dataLeftTOWrite,data,OFFSET_IN_BLOCK(offset),nbyte,&needToAllocate,fs->inodeTable[currFileIndex].data_ptrs[blocksUsed]);
+                    	offset += (dataWriten - dataLeftTOWrite);
+                    	dataWriten = dataLeftTOWrite;
                     }
-                    else if(blocksUsed >= DIRECT_TOTAL || blocksUsed < INDIRECT_TOTAL){
-                        fprintf(stderr,"testing not able to handle that big of a file yet\n");
-                        exit(-1);
-                        //fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL] = writeIndirectBlock(fs,&dataLeftTOWrite,data,nbyte,needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL]) <= 0)
+                    else if(blocksUsed >= DIRECT_TOTAL && blocksUsed < INDIRECT_TOTAL){
+                        printf("in the indirect\n");
+                        fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL] = writeIndirectBlock(fs,&dataLeftTOWrite,data,nbyte,needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL]);
+                    	offset += (dataWriten - dataLeftTOWrite);
+                    	dataWriten = dataLeftTOWrite;
                     }
-                    else if(blocksUsed >= INDIRECT_TOTAL || blocksUsed < DBL_INDIRECT_TOTAL){
+                    else if(blocksUsed >= INDIRECT_TOTAL && blocksUsed < DBL_INDIRECT_TOTAL){
                         fprintf(stderr,"have not implemented the ability for that big of a file\n");
+                        return -1;
                         exit(-1);
                     }
                     else{
@@ -684,7 +696,7 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
                     }
                 }
                 fs->inodeTable[currFileIndex].metaData.size += nbyte;
-                return 0;
+                return nbyte;
 
             }
             fprintf(stderr,"Could not find file to write\n");

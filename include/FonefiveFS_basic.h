@@ -14,10 +14,9 @@ typedef enum {
 } ftype_t;
 
 
-// They are what they sound like, the max filename (not counting terminator)
-// and the number of things a directory can contain
-// Have to be exposed in the header for the record structure, which is annoying
-// But the other option is to add more functions to parse and handle that struct
+//yea i think #defines are super cool, so I only program using them
+//there are so many I make the names self explanitory to avoid commenting 
+//each one
 #define BLOCK_SIZE 1024
 #define FNAME_MAX 47
 #define DIR_REC_MAX 20
@@ -25,15 +24,24 @@ typedef enum {
 #define INODE_BLOCK_TOTAL 32
 #define DATA_BLOCK_MAX 65536
 #define DATA_BLOCK_OFFSET (INODE_BLOCK_OFFSET + INODE_BLOCK_TOTAL)
+
 //#define BLOCK_IDX_VALID(block_idx) ((block_idx) >= DATA_BLOCK_OFFSET && (block_idx) < DATA_BLOCK_MAX)
 #define DIRECT_TOTAL 6
+
 #define INDIRECT_TOTAL (BLOCK_SIZE / sizeof(block_ptr_t))
+
 #define DBL_INDIRECT_TOTAL (INDIRECT_TOTAL * INDIRECT_TOTAL)
+
 #define FILE_SIZE_MAX ((DIRECT_TOTAL + INDIRECT_TOTAL + DBL_INDIRECT_TOTAL) * BLOCK_SIZE)
+
 #define CURR_BLOCK_INDEX(size) (((size)+1) / BLOCK_SIZE)
+
 #define BLOCKS_NEEDED(size) (((size)+(BLOCK_SIZE-1))/BLOCK_SIZE)
+
 #define OFFSET_IN_BLOCK(size) ((size) % BLOCK_SIZE)
+
 #define BLOCK_IDX_VALID(block_idx) ((block_idx) >= DATA_BLOCK_OFFSET && (block_idx) < DATA_BLOCK_MAX)
+
 #define INCREMENT_VOID_PTR(v_ptr, increment) (((uint8_t *)v_ptr) + (increment))
 
 
@@ -144,15 +152,84 @@ int getiNodeTableFromBS(F15FS_t* fs);
 int flushiNodeTableToBS(F15FS_t* fs);
 
 
-
+///
+/// finds empty node in the inode table
+/// \param fs the filesytem's inode table to search
+/// \return inode index or -1 on error
+///
 int findEmptyInode(F15FS_t *const fs);
+
+///
+/// searches directory for fname
+/// \param fs current file system
+/// \param fname to search the directry for 
+/// \param blockNum the block where the directory is
+/// \param output param to put the found inode index
+/// \return 0 for not found, 1 for found <0 for error
+///
 int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t* inodeIndex);
+
+///
+/// frees the dyn filepath created
+/// \param pathList the malloced array with the path lists
+/// \return <0 for errors
+///
 int freeFilePath(char*** pathList);
+
+///
+/// gets inode from a giving pathlist
+/// \param fs current filesystem
+/// \param pathlist: pathlist for the file or dir to retrieve
+/// \param searchOutParams: output params to put the information
+/// \return <0 for errors 1 for suscess
+///
 int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOutParams);
+
+///
+/// parses string to file path list
+/// \param filepath: string with the file path
+/// \param pathLIstOutput: the outputed pathlist
+/// \return <0 for erros 1 for success
+///
 int parseFilePath(const char *const filePath, char*** pathListOutput);
+
+///
+/// adds a file to a directory
+/// \param fs current file system
+/// \param fname: name of file to add
+/// \param fileinode: index of file's inode
+/// \param dirinode: inode to the dir where to add the file
+/// \param ftype: filetype of the file
+/// \return <0 for error 1 for success
+///
 int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode, ftype_t ftype);
+
+///
+/// write date to an indirect block
+/// \param fs current file system
+/// \param dataLeftToWrite the data amount that still needs to be writen
+/// \param data the data to be writen
+/// \param nbytes to total number of bytes to write
+/// \param neededToAllocate tell if its nesseary to allocate new blocks or write over the old ones
+/// \param blocksUsed finding the index fo the block to start wirting on
+/// \param indirectBLockId the id of the inderect block to write to 
+/// \return the indirectblockid, uint32_t_MAX for error
+/// 
 block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data,size_t nbytes,size_t needToAllocate,size_t blocksUsed,block_ptr_t indirectBlockId);
+
+///
+/// write date to an direct block
+/// \param fs current file system
+/// \param dataLeftToWrite the data amount that still needs to be writen
+/// \param data the data to be writen
+/// \param offset offest to write to the block
+/// \param nbytes to total number of bytes to write
+/// \param neededToAllocate tell if its nesseary to allocate new blocks or write over the old ones
+/// \param BLockId the id of the inderect block to write to 
+/// \return the indirectblockid, uint32_t_MAX for error
+/// 
 block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data, size_t offset,size_t nbytes,size_t *needToAllocate, block_ptr_t blockId);
+
 ///
 /// Mounts the specified file and returns an F15FS object
 /// \param fname the file to load
