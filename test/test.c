@@ -163,25 +163,25 @@ int main() {
 
     puts("\n\nB tests passed...\n");
 
-    // tests_c();
+    tests_c();
 
-    // puts("\n\nC tests passed...\n");
+    puts("\n\nC tests passed...\n");
 
-    // #if DESCRIPTOR_TESTS
-    // tests_d();
+    #if DESCRIPTOR_TESTS
+    tests_d();
 
-    // puts("\n\nD tests passed...\n");
-    // #endif
+    puts("\n\nD tests passed...\n");
+    #endif
 
-    // tests_e();
+    tests_e();
 
-    // puts("\n\nE tests passed...\n");
+    puts("\n\nE tests passed...\n");
 
-    // tests_f();
+    tests_f();
 
-    // puts("\n\nF tests passed...\n");
+    puts("\n\nF tests passed...\n");
 
-    // puts("TESTS COMPLETE");
+    puts("TESTS COMPLETE");
 
 }
 
@@ -378,7 +378,7 @@ void tests_b() {
 
         fname[3] = 'b';
         //printf("File: %s\n",fname);
-        assert(fs_create_file(fs, fname, REGULAR) == 0);
+        //assert(fs_create_file(fs, fname, REGULAR) == 0);
         //puts("Inode table full?");
 
         // This should fail, no more inodes.

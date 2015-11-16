@@ -206,20 +206,30 @@ int findEmptyInode(F15FS_t *const fs){
 
 //0 for not there -1 for actual error 1 for found
 int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t* inodeIndex){
-    dir_block_t dir;
-    if(block_store_read(fs->bs,blockNum,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
-        int i = 0;
-        printf("dir size = %d\n",dir.metaData.size);
-        for(i = 0; i < dir.metaData.size; i++){
-            printf("insed SD name: %s\n",dir.entries[i].filename);
-            printf("insed SD inode: %d\n",dir.entries[i].inode);
-            if(strcmp(dir.entries[i].filename,fname) == 0){
-                *inodeIndex = dir.entries[i].inode;
-                return 1;
-            }
-        }
-        return 0;
+    if(fs && fname && fname[0]){
+	    dir_block_t dir;
+	    if(block_store_read(fs->bs,blockNum,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
+	        int i = 0;
+	        printf("dir size = %d\n",dir.metaData.size);
+	        for(i = 0; i < dir.metaData.size; i++){
+	            if(i > 20){
+	            	return -1;
+	            }
+	            printf("insed SD name: %s\n",dir.entries[i].filename);
+	            printf("insed SD inode: %d\n",dir.entries[i].inode);
+	            printf("dir size is %d",dir.metaData.size);
+	            printf("fname is %s\n",fname);
+	            if(strcmp(dir.entries[i].filename,fname) == 0){
+	                *inodeIndex = dir.entries[i].inode;
+	                return 1;
+	            }
+	        }
+	        return 0;
+    	}
+    	fprintf(stderr,"Failed to read from hd in search directoy\n");
+    	exit(-1);
     }
+    fprintf(stderr,"Failed param check while searching the directory\n");
     return -1;
 }
 
@@ -281,6 +291,9 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
                 }
                 else if((listSize - i) == 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
                     //can't end it path with directory
+                    searchOutParams->found = 1;
+                    searchOutParams->parentDir = parentInode;
+                    searchOutParams->inode = currInode;
                     printf("can't end with directory1\n");
                     return -2;
                 }
@@ -440,6 +453,10 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
     //param check
     if(fs && fname && strcmp(fname,"") != 0 && strcmp(fname,"/") != 0&& ftype){
         int emptyiNodeIndex = findEmptyInode(fs);
+        if(emptyiNodeIndex < 0){
+        	fprintf(stderr, "No empty Inodes\n");
+        	return -1;
+        }
         printf("empyt idex is %d\n",emptyiNodeIndex);
         char **pathList = NULL;
         int listSize = 0;
@@ -453,7 +470,10 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
 
                 //add the fname to the inode
                 strcpy(fs->inodeTable[emptyiNodeIndex].fname,pathList[listSize]);
-                addFIleToDir(fs, pathList[listSize], emptyiNodeIndex,dirInfo.parentDir, ftype);
+                if(addFIleToDir(fs, pathList[listSize], emptyiNodeIndex,dirInfo.parentDir, ftype) < 0){
+                	fprintf(stderr, "Not able to add file to Directory\n");
+                	return -1;
+                }
 
                 if(ftype == DIRECTORY){
                     if((fs->inodeTable[emptyiNodeIndex].data_ptrs[0] = setUpDirBlock(fs->bs)) > 0){
@@ -466,6 +486,7 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
             }
         }
     }
+    fprintf(stderr, "Bad params when creating the file\n");
     return -1;
 }
 
@@ -480,9 +501,19 @@ int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const reco
     if(fs && fname && fname[0] && records){
         char** pathList = NULL;
         search_dir_t dirInfo;
+        dir_block_t dir;
+        
+        //this is kind of hacky but i'm running out of time
+        //and this is the first time I have ever used a goto ever
+        if(strcmp(fname,"/") == 0){
+        	printf("++++++++++++++++++++++++++++++++++++==got into goto\n");
+        	dirInfo.inode = 0;
+        	goto RootSearch; 
+        }
+
         if(parseFilePath(fname, &pathList) > 0){
-            if(getInodeFromPath(fs,pathList,&dirInfo) > 0){
-                dir_block_t dir;
+            if(getInodeFromPath(fs,pathList,&dirInfo) == -2){
+                RootSearch:
                 if(block_store_read(fs->bs,fs->inodeTable[dirInfo.inode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
                     int i = 0;
                     records->total = dir.metaData.size;
