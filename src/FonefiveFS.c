@@ -709,6 +709,32 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
     return -1;
 }
 
+
+int readDirectBLock(F15FS_t *const fs,size_t *dataLeftTORead,const void *data, size_t offset, size_t nbyte, blockId){
+	if(fs && *dataLeftTORead > 0, && data && BLOCK_IDX_VALID(blockId)){
+		size_t dataOffset = nbyte - *dataLeftTORead;
+        size_t bytesToRead = 0;
+
+        if(*dataLeftTORead < BLOCK_SIZE - offset){
+            bytesToRead = *dataLeftTORead;
+        }
+        else{
+            bytesToRead = BLOCK_SIZE - offset;
+        }
+
+        if(block_store_read(fs->bs,blockId,INCREMENT_VOID_PTR(data,dataOffset),bytesToRead,offset) == bytesToRead){
+            *dataLeftTORead -= bytesToRead;
+            return 1;
+        }
+        fprintf(stderr,"failed to write to hd when writing direct block\n");
+        return -1;
+
+	}
+	fprintf(stderr,"Failed param check while reading direcet block\n");
+	return -1;
+}
+
+
 ///
 /// Reads nbytes from the specified file and offset to the given data pointer
 /// Increments the read/write position of the descriptor by the ammount read
@@ -720,7 +746,63 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
 /// \return ammount read, < 0 on error
 ///
 ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, size_t nbyte, size_t offset){
-	return 0;
+	if(fs && faname && fname[0] && data && nbytes > 0){
+		
+		char **pathList = NULL;
+		search_dir_t dirInfo;
+		size_t dataLeftTORead = 0;
+
+		if(parseFilePath(fname,&pathList) > 0){
+
+            if(getInodeFromPath(fs,pathList, &dirInfo) > 0){
+            
+            	currFileIndex = dirInfo.inode;
+                currFileSize = fs->inodeTable[currFileIndex].metaData.size;
+                if((offset + nbyte) > currFileSize){
+                    fprintf(stderr, "Trying to read to big of a file\n");
+                    return -1;
+                }
+
+                dataLeftTORead = nbyte;
+
+                while(dataLeftTORead != 0){
+                	//printf("data wrirte: %lu\n",dataLeftTOWrite);
+                	blocksUsed = CURR_BLOCK_INDEX(offset);
+                	printf("blocksused = %lu\n",blocksUsed);
+                    if(blocksUsed >= 0 && blocksUsed < DIRECT_TOTAL){
+                        if(readDirectBLock(fs,&dataLeftTORead,data,OFFSET_IN_BLOCK(offset),nbyte,fs->inodeTable[currFileIndex].data_ptrs[blocksUsed]) < 0){
+                        	fprintf(stderr,"Failed to read direct block while reading\n");
+                        	return -1;
+                        }
+
+                    	offset += (dataRead - dataLeftTORead);
+                    	dataRead = dataLeftTORead;
+                    }
+                    else if(blocksUsed >= DIRECT_TOTAL && blocksUsed < INDIRECT_TOTAL){
+                        printf("in the indirect\n");
+                        fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL] = writeIndirectBlock(fs,&dataLeftTOWrite,data,nbyte,needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL]);
+                    	offset += (dataWriten - dataLeftTOWrite);
+                    	dataWriten = dataLeftTOWrite;
+                    }
+                    else if(blocksUsed >= INDIRECT_TOTAL && blocksUsed < DBL_INDIRECT_TOTAL){
+                        fprintf(stderr,"have not implemented the ability for that big of a file\n");
+                        return -1;
+                        exit(-1);
+                    }
+                    else{
+                        fprintf(stderr,"file to big after already checked, so pretty weird error\n");
+                        return -1;
+                    }
+                }
+
+
+            }
+            fprintf(stderr,"Failed to find file while reading\n");
+        }
+        fprintf(stderr,"Failed to parse file path while reading file\n");
+	}	return -1;
+	fprintf(stderr, "Failed params while reading File\n");
+	return -1;
 }
 
 ///
