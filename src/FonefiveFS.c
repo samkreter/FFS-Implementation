@@ -193,8 +193,10 @@ int fs_unmount(F15FS_t *fs){
 
 
 int findEmptyInode(F15FS_t *const fs){
+    //paraam check
     if(fs){
         int i = 0;
+        //search through to find first not used inode in table
         for(i = 0; i < 256; i++){
             if(((int)fs->inodeTable[i].metaData.inUse) != 1){
                 return i;
@@ -206,15 +208,19 @@ int findEmptyInode(F15FS_t *const fs){
 
 //0 for not there -1 for actual error 1 for found
 int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t* inodeIndex){
+    //param check
     if(fs && fname && fname[0]){
 	    dir_block_t dir;
+	    // read dir from the blockstore
 	    if(block_store_read(fs->bs,blockNum,&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
 	        int i = 0;
+	        //loop through comparing the filename to see if its in the dir
 	        for(i = 0; i < dir.metaData.size; i++){
 	            if(i > 20){
 	            	return -1;
 	            }
 	            if(strcmp(dir.entries[i].filename,fname) == 0){
+	                //found it, so return 
 	                *inodeIndex = dir.entries[i].inode;
 	                return 1;
 	            }
@@ -229,12 +235,15 @@ int searchDir(F15FS_t *const fs, char* fname, block_ptr_t blockNum, inode_ptr_t*
 }
 
 int freeFilePath(char*** pathList){
+    //get the size of the list, i put it at the front
     int listSize = (int)*(*pathList)[0];
     int i = 0;
+    // free all the strings 
     for(i = 0; i < listSize + 1; i++){
         free((*pathList)[i]);
         (*pathList)[i] = NULL;
     }
+    //free the list itself
     free(*pathList);
     *pathList = NULL;
     return 1;
@@ -244,6 +253,7 @@ int freeFilePath(char*** pathList){
 // 1 found 0 not found but still filled <0 error
 int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOutParams){
     if(fs && pathList && searchOutParams){
+        //get list size 
         int listSize = (int)*pathList[0];
 
 
@@ -253,8 +263,10 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
         inode_ptr_t parentInode = ROOT_INODE;
         int result = 0;
 
+        //loop through each filename in the list
         for(i = 1; i < listSize + 1; i++){
             result = searchDir(fs, pathList[i], fs->inodeTable[parentInode].data_ptrs[0], &currInode);
+            // if the filename was not found
             if(result == 0){
                 //not found but at the end of list, populate with parent direct
                 //for creating a file in that spot
@@ -272,11 +284,14 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
 
 
             }
+            //if the filename was found 
             else if(result == 1){
+            	//keep searching
                 if((listSize - i) != 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
                     parentInode = currInode;
                     continue;
                 }
+                //we just ended with a dir, works good if i want to read a dir
                 else if((listSize - i) == 0 && fs->inodeTable[currInode].metaData.filetype == DIRECTORY){
                     //can't end it path with directory
                     searchOutParams->found = 1;
@@ -288,6 +303,7 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
                     //can't have file not at end of path
                     return -3;
                 }
+                //found a file and its at the end o the list
                 else if((listSize - i) == 0 && fs->inodeTable[currInode].metaData.filetype == REGULAR){
                     searchOutParams->found = 1;
                     searchOutParams->parentDir = parentInode;
@@ -308,28 +324,33 @@ int getInodeFromPath(F15FS_t *const fs, char** pathList, search_dir_t* searchOut
 
 int parseFilePath(const char *const filePath, char*** pathListOutput){
     if(filePath && strcmp(filePath,"") != 0){
+        //convert the filepath to a non const to tokenize	
         char* nonConstFilePath = malloc(strlen(filePath)+1);
         if(!nonConstFilePath){
             return -1;
         }
         strcpy(nonConstFilePath,filePath);
+        
         char* temp = nonConstFilePath;
         char** pathList = NULL;
         int count = 0;
+        //set the delim for the string tok 
         const char *delim = "/";
         char* token;
 
+        //count how many files we have in the path to know how much to malloc
         while(*temp){
             if(*temp == '/'){
                 count++;
             }
             temp++;
         }
-
+        //check if its jsut the root dir
         if(count == 0){
             //theres only a file or directory name so just add the count
             //and whats in there to one
             if((pathList = (char**)malloc(sizeof(char*)*2)) != NULL){
+                //malloc the individual strings
                 if((pathList[0] = (char*)malloc(sizeof(char))) != NULL){
                     *pathList[0] = 1;
                     pathList[1] = nonConstFilePath;
@@ -362,16 +383,19 @@ int parseFilePath(const char *const filePath, char*** pathListOutput){
             token = strtok(nonConstFilePath,delim);
 
             int i = 1;
+            //loop through the toekens to be able to work
             while(token != NULL){
                 if(strlen(token) > FNAME_MAX){
                     for(i = i - 1;i >= 0; i--){
                         free(pathList[i]);
                     }
+                    //free everything so far if we get an error
                     free(pathList);
                     free(nonConstFilePath);
                     fprintf(stderr,"File or Dir name to long\n");
                     return -1;
                 }
+                //if all good malloc some stuff
                 if((pathList[i] = (char*)malloc(strlen(token) + 1)) == NULL){
                     for(;i >= 0; i--){
                         free(pathList[i]);
@@ -381,7 +405,7 @@ int parseFilePath(const char *const filePath, char*** pathListOutput){
                     fprintf(stderr, "Error during mallocing\n");
                     return -1;
                 }
-
+                //copy the token into the newly allocated array
                 strcpy(pathList[i],token);
 
                 token = strtok(NULL,delim);
@@ -398,13 +422,18 @@ int parseFilePath(const char *const filePath, char*** pathListOutput){
 }
 
 int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode, ftype_t ftype){
+    //param check
     if(fs && fname && strcmp(fname,"") != 0 && dirInode >= 0){
+        //set dir block to read into 
         dir_block_t dir;
+        //read dir from blockstore
         if(block_store_read(fs->bs,fs->inodeTable[dirInode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
             if(dir.metaData.size < DIR_REC_MAX && strlen(fname) <= FNAME_MAX){
+                //add everythign about the file to the dir
                 dir.entries[dir.metaData.size].inode = fileInode;
                 dir.entries[dir.metaData.size].ftype = ftype;
                 strcpy(dir.entries[dir.metaData.size].filename, fname);
+                //update the size of the dir
                 dir.metaData.size++;
                 //write the block back to the store
                 if(block_store_write(fs->bs,fs->inodeTable[dirInode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
@@ -426,6 +455,7 @@ int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileIno
 int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t ftype){
     //param check
     if(fs && fname && strcmp(fname,"") != 0 && strcmp(fname,"/") != 0&& ftype){
+        //get empty inode
         int emptyiNodeIndex = findEmptyInode(fs);
         if(emptyiNodeIndex < 0){
         	fprintf(stderr, "No empty Inodes\n");
@@ -434,7 +464,9 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
         char **pathList = NULL;
         int listSize = 0;
         search_dir_t dirInfo;
+        //parse filepath
         if(parseFilePath(fname,&pathList) > 0){
+            //get the inode, shouldn't be able to find it 
             if(getInodeFromPath(fs,pathList, &dirInfo) == 0){
                 listSize = (int)*pathList[0];
                 //set the use byte
@@ -447,7 +479,7 @@ int fs_create_file(F15FS_t *const fs, const char *const fname, const ftype_t fty
                 	fprintf(stderr, "Not able to add file to Directory\n");
                 	return -1;
                 }
-
+                //if its a dir set it up in the blockstore
                 if(ftype == DIRECTORY){
                     if((fs->inodeTable[emptyiNodeIndex].data_ptrs[0] = setUpDirBlock(fs->bs)) > 0){
                         return 0;
@@ -476,13 +508,16 @@ int fs_get_dir(F15FS_t *const fs, const char *const fname, dir_rec_t *const reco
         	dirInfo.inode = 0;
         	goto RootSearch; 
         }
-
+        //parse filepath
         if(parseFilePath(fname, &pathList) > 0){
+            //get the indoe for the file or dir in this case
             if(getInodeFromPath(fs,pathList,&dirInfo) == -2){
                 RootSearch:
+                //read in teh dir
                 if(block_store_read(fs->bs,fs->inodeTable[dirInfo.inode].data_ptrs[0],&dir,BLOCK_SIZE,0) == BLOCK_SIZE){
                     int i = 0;
                     records->total = dir.metaData.size;
+                    //add all data to the records 
                     for(i = 0; i < dir.metaData.size; i++){
                         strcpy(records->contents[i].fname, dir.entries[i].filename);
                         records->contents[i].ftype = dir.entries[i].ftype;
@@ -503,6 +538,7 @@ block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite, const vo
         if(blockId > 65232){
         	return (uint32_t)-1;
         }
+        //if we are overiding current data so no need to allocate
         if(BLOCK_IDX_VALID(blockId) && needToAllocate > 0){
             if(*dataLeftTOWrite < BLOCK_SIZE - offset){
                 bytesToWrite = *dataLeftTOWrite;
@@ -510,7 +546,7 @@ block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite, const vo
             else{
                 bytesToWrite = BLOCK_SIZE - offset;
             }
-
+            //write the data to the fs
             if(block_store_write(fs->bs,blockId,INCREMENT_VOID_PTR(data,dataOffset),bytesToWrite,offset) == bytesToWrite){
                 *dataLeftTOWrite -= bytesToWrite;
                 *needToAllocate -= bytesToWrite;
@@ -520,7 +556,7 @@ block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite, const vo
             exit(-1);
         }
         else{
-
+        	//we need to allocate becasue we are writing new data
             blockId = block_store_allocate(fs->bs);
 
             if(*dataLeftTOWrite < BLOCK_SIZE - offset){
@@ -529,7 +565,7 @@ block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite, const vo
             else{
                 bytesToWrite = BLOCK_SIZE - offset;
             }
-
+            //write the data to the blockstore
             if(block_store_write(fs->bs,blockId,INCREMENT_VOID_PTR(data,dataOffset),bytesToWrite,offset) == bytesToWrite){
                 *dataLeftTOWrite -= bytesToWrite;
                 return blockId;
@@ -553,6 +589,7 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
 
         //already alocated
         if(BLOCK_IDX_VALID(indirectBlockId) && CurrBlockToWrite > 0){
+            //read in the indirect block to get the direct pointers
             if(block_store_read(fs->bs,indirectBlockId,&indirectBlock,BLOCK_SIZE,0) == BLOCK_SIZE){
                 if(*dataLeftTOWrite < ((INDIRECT_TOTAL - CurrBlockToWrite - 1)*BLOCK_SIZE)){
                     bytesToWrite = *dataLeftTOWrite;
@@ -562,6 +599,7 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
                 }
                 size_t tempBytesToWrite = bytesToWrite;
                 i = CurrBlockToWrite;
+                //loop through to add to the direct blocks, call helper func
                 while(bytesToWrite > 0){
                     indirectBlock.direct_ptr[i] = writeDirectBLock(fs,&bytesToWrite,data,0,nbyte,0,0);
                     if(indirectBlock.direct_ptr[i] == (uint32_t)-1){
@@ -576,7 +614,7 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
             exit(-1);
         }
         else{
-
+        	//the same as above but we now need to allocate everything 
             if(*dataLeftTOWrite < (INDIRECT_TOTAL*BLOCK_SIZE)){
                 bytesToWrite = *dataLeftTOWrite;
             }
@@ -612,15 +650,16 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
         inode_ptr_t currFileIndex = 0;
         search_dir_t dirInfo;
 
+        //parse file path
         if(parseFilePath(fname,&pathList) > 0){
-
+        	//get inode for the file, it should exisit otherse error
             if(getInodeFromPath(fs,pathList, &dirInfo) > 0){
                 //set up the
                 // listSize = (int)*pathList[0];
                 currFileIndex = dirInfo.inode;
                 currFileSize = fs->inodeTable[currFileIndex].metaData.size;
                 if(offset > currFileSize){
-                    fprintf(stderr, "Offset bigger than size, this leaves holes\n");
+                    fprintf(stderr, "Trying to read more data than is in the file\n");
                     return -1;
                 }
                 //check when its time to start adding new blocks instead of writing over them
@@ -630,21 +669,25 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
                 while(dataLeftTOWrite != 0){
                 	//printf("data wrirte: %lu\n",dataLeftTOWrite);
                 	blocksUsed = CURR_BLOCK_INDEX(offset);
+                    //its time to read from the direct lbocks
                     if(blocksUsed >= 0 && blocksUsed < DIRECT_TOTAL){
                         fs->inodeTable[currFileIndex].data_ptrs[blocksUsed] = writeDirectBLock(fs,&dataLeftTOWrite,data,OFFSET_IN_BLOCK(offset),nbyte,&needToAllocate,fs->inodeTable[currFileIndex].data_ptrs[blocksUsed]);
                     	offset += (dataWriten - dataLeftTOWrite);
                     	dataWriten = dataLeftTOWrite;
                     }
+                    //read from the indirect lbocks
                     else if(blocksUsed >= DIRECT_TOTAL && blocksUsed < INDIRECT_TOTAL){
                         fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL] = writeIndirectBlock(fs,&dataLeftTOWrite,data,nbyte,needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL]);
                     	offset += (dataWriten - dataLeftTOWrite);
                     	dataWriten = dataLeftTOWrite;
                     }
+                    //read from double indirect
                     else if(blocksUsed >= INDIRECT_TOTAL && blocksUsed < DBL_INDIRECT_TOTAL){
                         fprintf(stderr,"have not implemented the ability for that big of a file\n");
                         return -1;
                         exit(-1);
                     }
+                    //we messed up man
                     else{
                         fprintf(stderr,"file to big after already checked, so pretty weird error\n");
                         return -1;
@@ -671,14 +714,14 @@ int readDirectBLock(F15FS_t *const fs,size_t *dataLeftTORead,const void *data, s
 	if(fs && *dataLeftTORead > 0 && data && BLOCK_IDX_VALID(blockId)){
 		size_t dataOffset = nbyte - *dataLeftTORead;
         size_t bytesToRead = 0;
-
+        //set up the right data to stay in bounds 
         if(*dataLeftTORead < BLOCK_SIZE - offset){
             bytesToRead = *dataLeftTORead;
         }
         else{
             bytesToRead = BLOCK_SIZE - offset;
         }
-
+        //read the data into the data buffer
         if(block_store_read(fs->bs,blockId,INCREMENT_VOID_PTR(data,dataOffset),bytesToRead,offset) == bytesToRead){
             *dataLeftTORead -= bytesToRead;
             return 1;
@@ -695,7 +738,7 @@ int readDirectBLock(F15FS_t *const fs,size_t *dataLeftTORead,const void *data, s
 
 ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, size_t nbyte, size_t offset){
 	if(fs && fname && fname[0] && data && nbyte > 0){
-		
+		//init vars
 		char **pathList = NULL;
 		search_dir_t dirInfo;
 		size_t dataLeftTORead = 0;
@@ -704,8 +747,9 @@ ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, siz
         size_t currFileIndex = 0;
         size_t dataRead = 0;
 
+        //parse the file path
 		if(parseFilePath(fname,&pathList) > 0){
-
+			//get the indoe, it must exist
             if(getInodeFromPath(fs,pathList, &dirInfo) > 0){
             
             	currFileIndex = dirInfo.inode;
@@ -716,11 +760,12 @@ ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, siz
                 }
 
                 dataLeftTORead = nbyte;
-
+                //keep trying as long as there is data to read
                 while(dataLeftTORead != 0){
                 	//printf("data wrirte: %lu\n",dataLeftTOWrite);
                 	blocksUsed = CURR_BLOCK_INDEX(offset);
                 	printf("blocksused = %lu\n",blocksUsed);
+                    //rad from direct pointers
                     if(blocksUsed >= 0 && blocksUsed < DIRECT_TOTAL){
                         if(readDirectBLock(fs,&dataLeftTORead,data,OFFSET_IN_BLOCK(offset),nbyte,fs->inodeTable[currFileIndex].data_ptrs[blocksUsed]) < 0){
                         	fprintf(stderr,"Failed to read direct block while reading\n");
@@ -730,6 +775,7 @@ ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, siz
                     	offset += (dataRead - dataLeftTORead);
                     	dataRead = dataLeftTORead;
                     }
+                    //rad from indirect poiters
                     else if(blocksUsed >= DIRECT_TOTAL && blocksUsed < INDIRECT_TOTAL){
                         fprintf(stderr,"Not yet implemented\n");
                         return -1;
@@ -739,6 +785,7 @@ ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, siz
                     	// offset += (dataRead - dataLeftTORead);
                     	// dataRead = dataLeftTORead;
                     }
+                    //read from double indirect pointers
                     else if(blocksUsed >= INDIRECT_TOTAL && blocksUsed < DBL_INDIRECT_TOTAL){
                         fprintf(stderr,"have not implemented the ability for that big of a file\n");
                         return -1;
@@ -760,10 +807,3 @@ ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, siz
 	return -1;
 }
 
-///
-/// Removes a file. (Note: Directories cannot be deleted unless empty)
-/// This closes any open descriptors to this file
-/// \param fs the F15FS file
-/// \param fname the file to remove
-/// \return 0 on sucess, < 0 on error
-///
