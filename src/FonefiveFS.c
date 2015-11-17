@@ -580,7 +580,7 @@ block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite, const vo
     exit(-1);
 }
 
-block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data,size_t nbyte,size_t needToAllocate,size_t blocksUsed,block_ptr_t indirectBlockId){
+block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data,size_t offset, size_t nbyte,size_t *needToAllocate,size_t blocksUsed, block_ptr_t indirectBlockId){
     if(fs && *dataLeftTOWrite > 0 && data && nbyte > 0){
         indirect_block_t indirectBlock;
         size_t bytesToWrite = 0;
@@ -588,7 +588,7 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
         size_t CurrBlockToWrite = blocksUsed - DIRECT_TOTAL;
 
         //already alocated
-        if(BLOCK_IDX_VALID(indirectBlockId) && CurrBlockToWrite > 0){
+        if(BLOCK_IDX_VALID(indirectBlockId) && *needToAllocate > 0){
             //read in the indirect block to get the direct pointers
             if(block_store_read(fs->bs,indirectBlockId,&indirectBlock,BLOCK_SIZE,0) == BLOCK_SIZE){
                 if(*dataLeftTOWrite < ((INDIRECT_TOTAL - CurrBlockToWrite - 1)*BLOCK_SIZE)){
@@ -601,10 +601,11 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
                 i = CurrBlockToWrite;
                 //loop through to add to the direct blocks, call helper func
                 while(bytesToWrite > 0){
-                    indirectBlock.direct_ptr[i] = writeDirectBLock(fs,&bytesToWrite,data,0,nbyte,0,0);
+                    indirectBlock.direct_ptr[i] = writeDirectBLock(fs,&bytesToWrite,data,offset,nbyte,needToAllocate,0);
                     if(indirectBlock.direct_ptr[i] == (uint32_t)-1){
                     	return (uint32_t)-1;
                     }
+                    offset = 0;
                     i++;
                 }
                 *dataLeftTOWrite -= tempBytesToWrite;
@@ -625,7 +626,8 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
             indirectBlockId = block_store_allocate(fs->bs);
             size_t tempBytesToWrite = bytesToWrite;
             while(bytesToWrite > 0){
-                indirectBlock.direct_ptr[i] = writeDirectBLock(fs,&bytesToWrite,data,0,nbyte,0,0);
+                indirectBlock.direct_ptr[i] = writeDirectBLock(fs,&bytesToWrite,data,offset,nbyte,0,0);
+                offset = 0;
                 i++;
             }
             *dataLeftTOWrite -= tempBytesToWrite;
@@ -669,17 +671,24 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
                 while(dataLeftTOWrite != 0){
                 	//printf("data wrirte: %lu\n",dataLeftTOWrite);
                 	blocksUsed = CURR_BLOCK_INDEX(offset);
+                	printf("Blocks used %lu++++++++++++++\n",blocksUsed);
+                	printf("dataLeftTOWrite %lu++++++++++\n",dataLeftTOWrite);
                     //its time to read from the direct lbocks
                     if(blocksUsed >= 0 && blocksUsed < DIRECT_TOTAL){
+                    	printf("Hit dirct block\n");
                         fs->inodeTable[currFileIndex].data_ptrs[blocksUsed] = writeDirectBLock(fs,&dataLeftTOWrite,data,OFFSET_IN_BLOCK(offset),nbyte,&needToAllocate,fs->inodeTable[currFileIndex].data_ptrs[blocksUsed]);
                     	offset += (dataWriten - dataLeftTOWrite);
                     	dataWriten = dataLeftTOWrite;
+                    	//reset the offset
+                    	offset = 0;
                     }
                     //read from the indirect lbocks
                     else if(blocksUsed >= DIRECT_TOTAL && blocksUsed < INDIRECT_TOTAL){
-                        fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL] = writeIndirectBlock(fs,&dataLeftTOWrite,data,nbyte,needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL]);
+                        printf("hit indirect block\n");
+                        fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL] = writeIndirectBlock(fs,&dataLeftTOWrite,data, OFFSET_IN_BLOCK(offset), nbyte,&needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL]);
                     	offset += (dataWriten - dataLeftTOWrite);
                     	dataWriten = dataLeftTOWrite;
+                    	offset = 0;
                     }
                     //read from double indirect
                     else if(blocksUsed >= INDIRECT_TOTAL && blocksUsed < DBL_INDIRECT_TOTAL){

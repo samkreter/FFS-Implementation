@@ -215,7 +215,7 @@ int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileIno
 /// \param indirectBLockId the id of the inderect block to write to 
 /// \return the indirectblockid, uint32_t_MAX for error
 /// 
-block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data,size_t nbytes,size_t needToAllocate,size_t blocksUsed,block_ptr_t indirectBlockId);
+block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data,size_t offset, size_t nbytes,size_t *needToAllocate,size_t blocksUsed,block_ptr_t indirectBlockId);
 
 ///
 /// write date to an direct block
