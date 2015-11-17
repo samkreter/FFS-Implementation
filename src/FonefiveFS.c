@@ -608,8 +608,12 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
                     offset = 0;
                     i++;
                 }
-                *dataLeftTOWrite -= tempBytesToWrite;
-                return indirectBlockId;
+                if(block_store_write(fs->bs,indirectBlockId,&indirectBlock,BLOCK_SIZE,0) == BLOCK_SIZE){
+	                *dataLeftTOWrite -= tempBytesToWrite;
+	                return indirectBlockId;
+	            }
+	            fprintf(stderr,"Failed to write block back to hd in DBindirect\n");
+	            exit(-1);
             }
             fprintf(stderr, "Problem reading indirect block from hd\n");
             exit(-1);
@@ -630,13 +634,84 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
                 offset = 0;
                 i++;
             }
-            *dataLeftTOWrite -= tempBytesToWrite;
-            return indirectBlockId;
+            if(block_store_write(fs->bs,indirectBlockId,&indirectBlock,BLOCK_SIZE,0) == BLOCK_SIZE){
+                *dataLeftTOWrite -= tempBytesToWrite;
+                return indirectBlockId;
+            }
+            fprintf(stderr,"Failed to write block back to hd in DBindirect\n");
+            exit(-1);
         }
     }
     fprintf(stderr, "failed param check while writing to indirect block\n");
     exit(-1);
 }
+
+block_ptr_t writeDBIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data,size_t offset, size_t nbyte,size_t *needToAllocate,size_t blocksUsed,block_ptr_t DBindirectBlockId){
+	if(fs && *dataLeftTOWrite > 0 && data && nbyte > 0){
+        indirect_block_t DBindirectBlock;
+        size_t bytesToWrite = 0;
+        size_t i = 0;
+        size_t CurrBlockToWrite = blocksUsed - DIRECT_TOTAL;
+
+        //already alocated
+        if(BLOCK_IDX_VALID(DBindirectBlockId) && *needToAllocate > 0){
+            //read in the indirect block to get the direct pointers
+            if(block_store_read(fs->bs,DBindirectBlockId,&DBindirectBlock,BLOCK_SIZE,0) == BLOCK_SIZE){
+                if(*dataLeftTOWrite < ((DBL_INDIRECT_TOTAL - CurrBlockToWrite - 1)*BLOCK_SIZE)){
+                    bytesToWrite = *dataLeftTOWrite;
+                }
+                else{
+                    bytesToWrite = ((DBL_INDIRECT_TOTAL - CurrBlockToWrite - 1)*BLOCK_SIZE);
+                }
+                size_t tempBytesToWrite = bytesToWrite;
+                i = CurrBlockToWrite;
+                //loop through to add to the direct blocks, call helper func
+                while(bytesToWrite > 0){
+                    DBindirectBlock.direct_ptr[i] = writeDirectBLock(fs,&bytesToWrite,data,offset,nbyte,needToAllocate,0);
+                    if(DBindirectBlock.direct_ptr[i] == (uint32_t)-1){
+                    	return (uint32_t)-1;
+                    }
+                    offset = 0;
+                    i++;
+                }
+                if(block_store_write(fs->bs,DBindirectBlockId,&DBindirectBlock,BLOCK_SIZE,0) == BLOCK_SIZE){
+	                *dataLeftTOWrite -= tempBytesToWrite;
+	                return DBindirectBlockId;
+	            }
+	            fprintf(stderr,"Failed to write block back to hd in DBindirect\n");
+	            exit(-1);
+            }
+            fprintf(stderr, "Problem reading indirect block from hd\n");
+            exit(-1);
+        }
+        else{
+        	//the same as above but we now need to allocate everything 
+            if(*dataLeftTOWrite < (DBL_INDIRECT_TOTAL*BLOCK_SIZE)){
+                bytesToWrite = *dataLeftTOWrite;
+            }
+            else{
+                bytesToWrite = DBL_INDIRECT_TOTAL * BLOCK_SIZE;
+            }
+
+            DBindirectBlockId = block_store_allocate(fs->bs);
+            size_t tempBytesToWrite = bytesToWrite;
+            while(bytesToWrite > 0){
+                DBindirectBlock.direct_ptr[i] = writeDirectBLock(fs,&bytesToWrite,data,offset,nbyte,0,0);
+                offset = 0;
+                i++;
+            }
+            if(block_store_write(fs->bs,DBindirectBlockId,&DBindirectBlock,BLOCK_SIZE,0) == BLOCK_SIZE){
+	            *dataLeftTOWrite -= tempBytesToWrite;
+	            return DBindirectBlockId;
+            }
+            fprintf(stderr,"Failed to write block back to hd in DBindirect\n");
+            exit(-1);
+        }
+    }
+    fprintf(stderr, "failed param check while writing to indirect block\n");
+    exit(-1);
+}
+
 
 
 ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *data, size_t nbyte, size_t offset){
@@ -692,9 +767,9 @@ ssize_t fs_write_file(F15FS_t *const fs, const char *const fname, const void *da
                     }
                     //read from double indirect
                     else if(blocksUsed >= INDIRECT_TOTAL && blocksUsed < DBL_INDIRECT_TOTAL){
-                        fprintf(stderr,"have not implemented the ability for that big of a file\n");
-                        return -1;
-                        exit(-1);
+                        fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL+1] = writeDBIndirectBlock(fs,&dataLeftTOWrite,data, OFFSET_IN_BLOCK(offset), nbyte,&needToAllocate,blocksUsed,fs->inodeTable[currFileIndex].data_ptrs[DIRECT_TOTAL + 1]);
+
+                        offset = 0;
                     }
                     //we messed up man
                     else{

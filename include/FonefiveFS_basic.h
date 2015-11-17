@@ -204,6 +204,9 @@ int parseFilePath(const char *const filePath, char*** pathListOutput);
 ///
 int addFIleToDir(F15FS_t *const fs, const char *const fname, inode_ptr_t fileInode, inode_ptr_t dirInode, ftype_t ftype);
 
+
+
+
 ///
 /// write date to an indirect block
 /// \param fs current file system
@@ -229,6 +232,9 @@ block_ptr_t writeIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const v
 /// \return the indirectblockid, uint32_t_MAX for error
 /// 
 block_ptr_t writeDirectBLock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data, size_t offset,size_t nbytes,size_t *needToAllocate, block_ptr_t blockId);
+
+
+block_ptr_t writeDBIndirectBlock(F15FS_t *const fs,size_t *dataLeftTOWrite,const void *data,size_t offset, size_t nbytes,size_t *needToAllocate,size_t blocksUsed,block_ptr_t DBindirectBlockId);
 
 
 ///
