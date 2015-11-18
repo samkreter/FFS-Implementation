@@ -28,14 +28,14 @@ typedef enum {
 #define DIR_REC_MAX 20
 
 // It's a directory entry. Won't really be used internally
-typedef {
+typedef struct {
 	ftype_t ftype;
 	char fname[FNAME_MAX+1];
 } dir_entry_t;
 
 // It's a directory record, used to report directory contents to the user
 // Won't really be used internally
-typedef struct dir_rec {
+typedef struct {
     unsigned total; // total valid entries
     dir_entry_t contents[DIR_REC_MAX];
 } dir_rec_t;
