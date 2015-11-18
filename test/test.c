@@ -4,7 +4,6 @@
 #include <string.h>
 #include "../src/FonefiveFS.c"
 
-#error "Select your spec by editing the line below this and removing this line!"
 #define DESCRIPTOR_TESTS 0
 // set to 1 to enable descriptor tests
 
