@@ -1385,6 +1385,175 @@ ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, siz
     return data_read;
 }
 
+void remove_file_data(const F15FS_t *const fs, inode_ptr_t inode) {
+    if (fs && inode) {
+
+        block_ptr_t indir_block[INDIRECT_TOTAL];
+        inode_t inode_data;
+        if (load_inode(fs, inode, &inode_data)) {
+            size_t fileSize = inode_data.mdata.size;
+
+                if(fileSize <= DIRECT_TOTAL){
+                    for(int i = 0; i < fileSize; i++){
+                        block_store_release(fs->bs,inode_data.data_ptrs[i]);
+                        if(block_store_errno() != BS_OK){
+                            fprintf(stderr, "Error while freeing direct blocks\n");
+                            return -1;
+                        }
+                    }
+                    //all good freed them all
+                    return;
+                }
+                else{
+                    for(int i = 0; i < DIRECT_TOTAL; i++){
+                        block_store_release(fs->bs,inode_data.data_ptrs[i]);
+                        if(block_store_errno() != BS_OK){
+                            fprintf(stderr, "Error while freeing direct blocks\n");
+                            return -1;
+                        }
+                    }
+
+                    //decrement the fileSize
+                    fileSize -= DIRECT_TOTAL;
+
+                    //load the indirect block from pointer
+                    if (!inode.data_ptrs[DIRECT_TOTAL] || !load_block(fs, inode.data_ptrs[DIRECT_TOTAL], &indir_block)) {
+                        fprintf(stderr,"Error while loading indirect block\n");
+                        return -1;
+                    }
+
+
+                    if(fileSize <= INDIRECT_TOTAL){
+                        for(int i = 0; i < (fileSize - DIRECT_TOTAL); i++){
+                            block_store_release(fs->bs, indir_block[i]);
+                            if(block_store_errno() != BS_OK){
+                                fprintf(stderr, "Error while freeing direct blocks\n");
+                                return -1;
+                            }
+                        }
+                        //all good man we got through this thing
+                        return 1;
+                    }
+                    else{
+                        for(int i = 0; i < INDIRECT_TOTAL; i++){
+
+                            block_store_release(fs->bs, indir_block[i]);
+                            if(block_store_errno() != BS_OK){
+                                fprintf(stderr, "Error while freeing direct blocks\n");
+                                return -1;
+                            }
+                        }
+
+                        fileSize -= INDIRECT_TOTAL;
+
+                        //find out how many of these damn indirect blocks i need to reach and get
+                        size_t numOfIndirectBLocks = fileSize % INDIRECT_TOTAL
+                        if(numOfIndirectBLocks == 0){
+                            //shouldn't ever happen but its always nice to watch out for weird stuff
+                            // yes i'm talking to you heap smash....you suck
+                            return 1;
+                        }
+
+                        //set up a separed pointers
+                        block_ptr_t DB_indir_block[INDIRECT_TOTAL];
+
+
+                        if(inode.data_ptrs[DIRECT_TOTAL+1] && load_block(fs, inode.data_ptrs[DIRECT_TOTAL+1], &DB_indir_block)){
+                            //this will loop and go through all the indirects
+                            for(int i = 0; i < numOfIndirectBLocks; i++){
+                                // //zero out the var to make sure no runover
+                                // memset(&indir_block,0,sizeof(block_ptr_t)*INDIRECT_TOTAL);
+
+                                //get this rounds indirect
+                                if (!DB_indir_block[i] || !load_block(fs, DB_indir_block[i], &indir_block)) {
+                                    fprintf(stderr,"Error while loading indirect block\n");
+                                    return -1;
+                                }
+
+                                if(fileSize <= INDIRECT_TOTAL){
+                                    for(int i = 0; i < fileSize; i++){
+
+                                        block_store_release(fs->bs,indir_block[0]);
+
+                                        if(block_store_errno() != BS_OK){
+                                            fprintf(stderr, "Failed realese double indirect\n");
+                                            return -1;
+                                        }
+                                    }
+                                    //finished here
+                                    return 1;
+                                }
+                                else{
+                                    for(int i = 0; i < INDIRECT_TOTAL; i++){
+                                        block_store_release(fs->bs,indir_block[0]);
+
+                                        if(block_store_errno() != BS_OK){
+                                            fprintf(stderr, "Failed realese double indirect\n");
+                                            return -1;
+                                        }
+
+                                    }
+                                }
+
+
+                            }
+                            //we all good;
+                            return 1;
+                        }
+
+
+                    }
+
+                }
+
+
+        }
+        fprintf(stderr, "Error while loading inode remove files\n");
+
+    }
+    fprintf(stderr, "Error with params removing file\n");
+    return -1;
+}
+
+///
+/// Removes a file. (Note: Directories cannot be deleted unless empty)
+/// \param fs the F15FS file
+/// \param fname the file to remove
+/// \return 0 on sucess, < 0 on error
+///
+int fs_remove_file(F15FS_t *const fs, const char *const fname){
+    if(fs && fname && fname[0]){
+        search_struct_t file_info;
+        inode_t search_inode;
+        locate_file(fs, fname, &file_info);
+        if(file_info.success && file_info.valid){
+            if (load_inode(fs, file_info.inode, &search_inode)) {
+                if(search_inode.mdata.type == DIRECTORY){
+
+                }
+                else{
+
+                }
+            }
+        }
+
+    }
+    fprintf(stderr, "Error with params while removing file\n");
+    return -1;
+}
+
+///
+/// Moves the file from the source name to the destination name
+/// \param fs the F15FS file
+/// \param fname_src the file to move
+/// \param fname_dst the file's new location
+/// \return 0 on success, < 0 on error
+///
+int fs_move_file(F15FS_t *const fs, const char *const fname_src, const char *const fname_dst){
+    return -1;
+}
+
+
 
 
 
