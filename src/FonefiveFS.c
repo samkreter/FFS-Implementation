@@ -1385,7 +1385,7 @@ ssize_t fs_read_file(F15FS_t *const fs, const char *const fname, void *data, siz
     return data_read;
 }
 
-void remove_file_data(const F15FS_t *const fs, inode_ptr_t inode) {
+int remove_file_data(const F15FS_t *const fs, inode_ptr_t inode) {
     if (fs && inode) {
 
         block_ptr_t indir_block[INDIRECT_TOTAL];
@@ -1515,6 +1515,27 @@ void remove_file_data(const F15FS_t *const fs, inode_ptr_t inode) {
     return -1;
 }
 
+int remove_file_from_dir(F15FS_t * const fs, const char *const fname, dir_block_t* dirData){
+    if(fs && fname && fname[0] && dirData){
+        for(int i = 0; i < dirData->mdata.size; i++){
+            if(strncmp(dirData->entries[i].fname,fname,FNAME_MAX) == 0){
+                memset(&dirData->entries[i].fname,0,FNAME_MAX);
+                if(i < dirData->mdata.size-1){
+                    strncpy(&dirData->entries[i].fname,&dirData->entries[dirData->mdata.size-1],FNAME_MAX);
+                    memset(&dirData->entries[dirData->mdata.size-1].fname,0,FNAME_MAX);
+                    dirData->mdata.size -= 1;
+                }
+                return 1;
+            }
+        }
+        return -1;
+        fprintf(stderr, "For some reason didn't find it in the dir\n");
+    }
+    fprintf(stderr, "Failed params\n");
+    return -1;
+}
+
+
 ///
 /// Removes a file. (Note: Directories cannot be deleted unless empty)
 /// \param fs the F15FS file
@@ -1525,18 +1546,51 @@ int fs_remove_file(F15FS_t *const fs, const char *const fname){
     if(fs && fname && fname[0]){
         search_struct_t file_info;
         inode_t search_inode;
+        inode_t parent_inode;
+        dir_block_t dirData;
+        search_struct_t result_info;
+
         locate_file(fs, fname, &file_info);
         if(file_info.success && file_info.valid){
             if (load_inode(fs, file_info.inode, &search_inode)) {
                 if(search_inode.mdata.type == DIRECTORY){
-
+                    scan_directory(fs,"HACK",file_info.inode,result_info);
+                    if(result_info.success && result_info.total == 0){
+                        block_store_release(fs->bs,search_inode.data_ptrs[0]);
+                        if(block_store_errno == BS_OK){
+                            memset(search_inode.fname,0,FNAME_MAX);
+                            search_inode.mdata.size = 0;
+                            return 0;
+                        }
+                        fprintf(stdeer,"couln't release\n");
+                        return -1;
+                    }
+                    fprintf(stderr, "Can't delete non empty directory\n");
+                    return -1;
                 }
                 else{
-
+                    if(remove_file_data(fs,search_inode){
+                        if(load_inode(fs, search_inode.mdata.parent ,&parent_inode) && load_block(fs,parent_inode.data_ptrs[0],&dirData)){
+                            if(remove_file_from_dir(fs,&dirData)){
+                                write_block(fs,search_inode.mdata.parent,&dirData);
+                                memeset(search_inode.fname,0,FNAME_MAX);
+                                search_inode.mdata.size = 0;
+                                return 0;
+                            }
+                        }
+                        fprintf(stderr, "Failed to load i node\n");
+                        return -1;
+                    }
+                    fprintf(stderr,"Failed to remove file data\n");
+                    return -1;
                 }
             }
-        }
+            fprintf(stderr, "Failed to load inode\n");
+            return -1;
 
+        }
+        fprintf(stderr, "file not found\n");
+        return -1;
     }
     fprintf(stderr, "Error with params while removing file\n");
     return -1;
