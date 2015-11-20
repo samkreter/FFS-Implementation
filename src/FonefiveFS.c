@@ -1608,6 +1608,49 @@ int fs_remove_file(F15FS_t *const fs, const char *const fname){
     return -1;
 }
 
+
+char* get_parent_folder(const char * const fname){
+	char *path_copy = (char *)calloc(1, FS_PATH_MAX);
+	const size_t path_length = strnlen(fname, FS_PATH_MAX);
+	memcpy(path_copy, fname, path_length);
+
+
+	char* returnPath = (char*)malloc(sizeof(char)*FNAME_MAX);
+    
+    int count = 0;
+    int i = 0;
+    while(*(path_copy+i) != '\0'){
+    	if(*(path_copy+i) == '/'){
+    		count++;
+    	}
+    	i++;
+    }
+
+    if(count < 1){
+    	return NULL;
+    }
+
+    if(count == 1){
+    	strncpy(returnPath,"/",FNAME_MAX);
+    	return returnPath;
+    }
+
+    while(*(path_copy+i) != '\0'){
+    	if(*(path_copy+i) == '/'){
+    		count--;
+    		if(count == 0){
+    			*(path_copy+i) = '\0';
+    			break;
+    		}
+    	}
+    	i++;
+    }
+
+    strncpy(returnPath,path_copy,FNAME_MAX);
+    return returnPath;
+
+}
+
 ///
 /// Moves the file from the source name to the destination name
 /// \param fs the F15FS file
@@ -1616,43 +1659,54 @@ int fs_remove_file(F15FS_t *const fs, const char *const fname){
 /// \return 0 on success, < 0 on error
 ///
 int fs_move_file(F15FS_t *const fs, const char *const fname_src, const char *const fname_dst){
-    if(fs && fname_dst && fname_dst[0] && fname_src && fname_src[0]){
+    if(fs && fname_dst && fname_dst[0] && fname_src && fname_src[0] && strcmp(fname_src,"/") != 0 && strcmp(fname_dst,"/")){
         search_struct_t src_result_info;
         search_struct_t dst_result_info;
+        search_struct_t newFilename;
+        dir_block_t parentDirBLock;
         inode_t src_inode;
-        inode_t temp_inode;
+        inode_t src_parent_inode;
         inode_t dst_inode;
-
+        printf("file name %s\n",fname_src);
         locate_file(fs,fname_src,&src_result_info);
+        printf("src_result_info: %s %d",(char*)src_result_info.data,src_result_info.valid);
         if(src_result_info.success && src_result_info.valid){
             load_inode(fs,src_result_info.inode,&src_inode);
-            if(fs_create_file(fs, fname_dst, src_inode.mdata.type) == 0) {
-                locate_file(fs,fname_dst,&dst_result_info);
-                if(dst_result_info.success && dst_result_info.valid){
-                    load_inode(fs,dst_result_info.inode,&dst_inode);
+          	
+            
+          	//get the parent dir, the inode of the parent will be set
+            locate_file(fs,get_parent_folder(fname_dst),&dst_result_info);
+            locate_file(fs,fname_dst,&newFilename);
+            //make sure its not found so the parent dir is good
+            if(dst_result_info.valid){
+                //add inode to new dir
+                load_inode(fs,dst_result_info.inode,&dst_inode);
+                load_block(fs,dst_inode.data_ptrs[0],&parentDirBLock);
+                if(parentDirBLock.mdata.size < DIR_REC_MAX){
+                	strncpy(parentDirBLock.entries[parentDirBLock.mdata.size].fname,newFilename.data,FNAME_MAX);
+                	parentDirBLock.entries[parentDirBLock.mdata.size].inode = src_result_info.inode;
+           			parentDirBLock.mdata.size++;
+                	write_block(fs,dst_inode.data_ptrs[0],&parentDirBLock);
+                	
+                	//i like to resuse vars, and i always mess up with memset, 
+                	//living on the wild side
+                	memset(&parentDirBLock,0,sizeof(dir_block_t));
 
-                    //copy the old inode info to the new
-                    memcpy(&temp_inode,&src_inode,sizeof(inode_t));
-                    //put the new parent directoy there
-                    temp_inode.mdata.parent = dst_inode.mdata.parent;
-                    //cpy the new fname to the new file
-                    strncpy(temp_inode.fname,dst_inode.fname,FNAME_MAX);
-                    //write the new inode data over the old
-                    if(write_inode(fs,dst_result_info.inode,&temp_inode)){
-                        if(fs_remove_file(fs, fname_src) == 0){
-                            return 0;
-                        }
-                        fprintf(stderr, "Failed to remove old file\n");
+                	load_inode(fs,src_inode.mdata.parent,&src_parent_inode);
+                	load_block(fs,src_parent_inode.data_ptrs[0],&parentDirBLock);
+                	if(remove_file_from_dir(fs,src_inode.fname,&parentDirBLock)){
+                    	write_block(fs,src_parent_inode.data_ptrs[0],&parentDirBLock);
+                    	return 0;
                     }
-                    fprintf(stderr, "Failed to write inode\n");
 
                 }
+                fprintf(stderr, "New directory already full can't add\n");
+                return -1;
 
             }
-            fprintf(stderr, "Failed to craete file\n");
-            return -1;
+
         }
-        fprintf(stderr, "Files to locate file\n");
+        fprintf(stderr, "Failed to locate file\n");
         return -1;
 
     }
