@@ -1392,42 +1392,42 @@ int remove_file_data(const F15FS_t *const fs, inode_ptr_t inode) {
         inode_t inode_data;
         if (load_inode(fs, inode, &inode_data)) {
             size_t fileSize = inode_data.mdata.size;
-
-                if(fileSize <= DIRECT_TOTAL){
-                    for(int i = 0; i < fileSize; i++){
+            printf("file size %lu\n",fileSize);
+                if(fileSize <= (DIRECT_TOTAL*BLOCK_SIZE)){
+                    for(int i = 0; i < ((fileSize-1)/BLOCK_SIZE + 1); i++){
                         block_store_release(fs->bs,inode_data.data_ptrs[i]);
                         if(block_store_errno() != BS_OK){
-                            fprintf(stderr, "Error while freeing direct blocks\n");
+                            fprintf(stderr, "1Error while freeing direct blocks\n");
                             return -1;
                         }
                     }
                     //all good freed them all
-                    return;
+                    return 1;
                 }
                 else{
                     for(int i = 0; i < DIRECT_TOTAL; i++){
                         block_store_release(fs->bs,inode_data.data_ptrs[i]);
                         if(block_store_errno() != BS_OK){
-                            fprintf(stderr, "Error while freeing direct blocks\n");
+                            fprintf(stderr, "2Error while freeing direct blocks\n");
                             return -1;
                         }
                     }
 
                     //decrement the fileSize
-                    fileSize -= DIRECT_TOTAL;
+                    fileSize -= (DIRECT_TOTAL*BLOCK_SIZE);
 
                     //load the indirect block from pointer
-                    if (!inode.data_ptrs[DIRECT_TOTAL] || !load_block(fs, inode.data_ptrs[DIRECT_TOTAL], &indir_block)) {
-                        fprintf(stderr,"Error while loading indirect block\n");
+                    if (!inode_data.data_ptrs[DIRECT_TOTAL] || !load_block(fs, inode_data.data_ptrs[DIRECT_TOTAL], &indir_block)) {
+                        fprintf(stderr,"Error while loading indirect block!\n");
                         return -1;
                     }
 
 
-                    if(fileSize <= INDIRECT_TOTAL){
-                        for(int i = 0; i < (fileSize - DIRECT_TOTAL); i++){
+                    if(fileSize <= INDIRECT_TOTAL*BLOCK_SIZE){
+                        for(int i = 0; i < ((fileSize-1)/BLOCK_SIZE + 1); i++){
                             block_store_release(fs->bs, indir_block[i]);
                             if(block_store_errno() != BS_OK){
-                                fprintf(stderr, "Error while freeing direct blocks\n");
+                                fprintf(stderr, "3Error while freeing direct blocks\n");
                                 return -1;
                             }
                         }
@@ -1439,15 +1439,17 @@ int remove_file_data(const F15FS_t *const fs, inode_ptr_t inode) {
 
                             block_store_release(fs->bs, indir_block[i]);
                             if(block_store_errno() != BS_OK){
-                                fprintf(stderr, "Error while freeing direct blocks\n");
+                                fprintf(stderr, "4Error while freeing direct blocks\n");
                                 return -1;
                             }
                         }
 
-                        fileSize -= INDIRECT_TOTAL;
+                        fileSize -= INDIRECT_TOTAL*BLOCK_SIZE;
 
                         //find out how many of these damn indirect blocks i need to reach and get
-                        size_t numOfIndirectBLocks = fileSize % INDIRECT_TOTAL
+                        size_t numOfIndirectBLocks = fileSize % INDIRECT_TOTAL;
+                        printf("filesize if %lu\n",fileSize);
+                        printf("num of indirect blocks %lu\n",numOfIndirectBLocks);
                         if(numOfIndirectBLocks == 0){
                             //shouldn't ever happen but its always nice to watch out for weird stuff
                             // yes i'm talking to you heap smash....you suck
@@ -1458,20 +1460,20 @@ int remove_file_data(const F15FS_t *const fs, inode_ptr_t inode) {
                         block_ptr_t DB_indir_block[INDIRECT_TOTAL];
 
 
-                        if(inode.data_ptrs[DIRECT_TOTAL+1] && load_block(fs, inode.data_ptrs[DIRECT_TOTAL+1], &DB_indir_block)){
+                        if(inode_data.data_ptrs[DIRECT_TOTAL+1] && load_block(fs, inode_data.data_ptrs[DIRECT_TOTAL+1], &DB_indir_block)){
                             //this will loop and go through all the indirects
                             for(int i = 0; i < numOfIndirectBLocks; i++){
                                 // //zero out the var to make sure no runover
                                 // memset(&indir_block,0,sizeof(block_ptr_t)*INDIRECT_TOTAL);
-
-                                //get this rounds indirect
-                                if (!DB_indir_block[i] || !load_block(fs, DB_indir_block[i], &indir_block)) {
-                                    fprintf(stderr,"Error while loading indirect block\n");
-                                    return -1;
+                            	printf("i is %d\n",i);
+                            	//get this rounds indirect
+                                if (!DB_indir_block[i] ) {
+                                    fprintf(stderr,"1Error while loading indirect block\n");
+                                    return 1;
                                 }
 
-                                if(fileSize <= INDIRECT_TOTAL){
-                                    for(int i = 0; i < fileSize; i++){
+                                if(fileSize <= INDIRECT_TOTAL*BLOCK_SIZE){
+                                    for(int i = 0; i < ((fileSize-1)/BLOCK_SIZE + 1); i++){
 
                                         block_store_release(fs->bs,indir_block[0]);
 
@@ -1519,10 +1521,14 @@ int remove_file_from_dir(F15FS_t * const fs, const char *const fname, dir_block_
     if(fs && fname && fname[0] && dirData){
         for(int i = 0; i < dirData->mdata.size; i++){
             if(strncmp(dirData->entries[i].fname,fname,FNAME_MAX) == 0){
+                printf("before here %s\n",dirData->entries[i].fname);
                 memset(&dirData->entries[i].fname,0,FNAME_MAX);
+                printf("after memset %s\n",dirData->entries[i].fname);
                 if(i < dirData->mdata.size-1){
-                    strncpy(&dirData->entries[i].fname,&dirData->entries[dirData->mdata.size-1],FNAME_MAX);
+                    printf("foudn file in dire\n");
+                    memcpy(&dirData->entries[i],&dirData->entries[dirData->mdata.size-1],sizeof(dir_ent_t));
                     memset(&dirData->entries[dirData->mdata.size-1].fname,0,FNAME_MAX);
+                    printf("after afer memset %s\n",dirData->entries[i].fname);
                     dirData->mdata.size -= 1;
                 }
                 return 1;
@@ -1553,28 +1559,34 @@ int fs_remove_file(F15FS_t *const fs, const char *const fname){
         locate_file(fs, fname, &file_info);
         if(file_info.success && file_info.valid){
             if (load_inode(fs, file_info.inode, &search_inode)) {
+            	printf("inode is %d",file_info.inode);
+                printf("fileytpe is %d\n",search_inode.mdata.type);
+                printf("FILE name is %s\n",search_inode.fname);
                 if(search_inode.mdata.type == DIRECTORY){
-                    scan_directory(fs,"HACK",file_info.inode,result_info);
+                    printf("this is dir\n");
+                    scan_directory(fs,"HACK",file_info.inode,&result_info);
                     if(result_info.success && result_info.total == 0){
+                        printf("made it to the results\n");
                         block_store_release(fs->bs,search_inode.data_ptrs[0]);
-                        if(block_store_errno == BS_OK){
-                            memset(search_inode.fname,0,FNAME_MAX);
-                            search_inode.mdata.size = 0;
-                            return 0;
-                        }
-                        fprintf(stdeer,"couln't release\n");
-                        return -1;
+                        memset(search_inode.fname,0,FNAME_MAX);
+                        search_inode.mdata.size = 0;
+                        printf("dir win\n");
+                        return 0;
+
                     }
                     fprintf(stderr, "Can't delete non empty directory\n");
                     return -1;
                 }
                 else{
-                    if(remove_file_data(fs,search_inode){
+                    if(remove_file_data(fs,file_info.inode)){
                         if(load_inode(fs, search_inode.mdata.parent ,&parent_inode) && load_block(fs,parent_inode.data_ptrs[0],&dirData)){
-                            if(remove_file_from_dir(fs,&dirData)){
-                                write_block(fs,search_inode.mdata.parent,&dirData);
-                                memeset(search_inode.fname,0,FNAME_MAX);
+                            if(remove_file_from_dir(fs,search_inode.fname,&dirData)){
+                                write_block(fs,parent_inode.data_ptrs[0],&dirData);
+
+                                memset(search_inode.fname,0,FNAME_MAX);
                                 search_inode.mdata.size = 0;
+                       			write_inode(fs,file_info.inode,&search_inode);
+                                printf("file win\n");
                                 return 0;
                             }
                         }
@@ -1614,13 +1626,13 @@ int fs_move_file(F15FS_t *const fs, const char *const fname_src, const char *con
         locate_file(fs,fname_src,&src_result_info);
         if(src_result_info.success && src_result_info.valid){
             load_inode(fs,src_result_info.inode,&src_inode);
-            if(fs_create_file(fs, fname_dst, src_inode.mdata.type == 0) {
+            if(fs_create_file(fs, fname_dst, src_inode.mdata.type) == 0) {
                 locate_file(fs,fname_dst,&dst_result_info);
                 if(dst_result_info.success && dst_result_info.valid){
                     load_inode(fs,dst_result_info.inode,&dst_inode);
 
                     //copy the old inode info to the new
-                    memcpy(temp_inode,src_inode,sizeof(inode_t));
+                    memcpy(&temp_inode,&src_inode,sizeof(inode_t));
                     //put the new parent directoy there
                     temp_inode.mdata.parent = dst_inode.mdata.parent;
                     //cpy the new fname to the new file
