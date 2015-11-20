@@ -1604,6 +1604,47 @@ int fs_remove_file(F15FS_t *const fs, const char *const fname){
 /// \return 0 on success, < 0 on error
 ///
 int fs_move_file(F15FS_t *const fs, const char *const fname_src, const char *const fname_dst){
+    if(fs && fname_dst && fname_dst[0] && fname_src && fname_src[0]){
+        search_struct_t src_result_info;
+        search_struct_t dst_result_info;
+        inode_t src_inode;
+        inode_t temp_inode;
+        inode_t dst_inode;
+
+        locate_file(fs,fname_src,&src_result_info);
+        if(src_result_info.success && src_result_info.valid){
+            load_inode(fs,src_result_info.inode,&src_inode);
+            if(fs_create_file(fs, fname_dst, src_inode.mdata.type == 0) {
+                locate_file(fs,fname_dst,&dst_result_info);
+                if(dst_result_info.success && dst_result_info.valid){
+                    load_inode(fs,dst_result_info.inode,&dst_inode);
+
+                    //copy the old inode info to the new
+                    memcpy(temp_inode,src_inode,sizeof(inode_t));
+                    //put the new parent directoy there
+                    temp_inode.mdata.parent = dst_inode.mdata.parent;
+                    //cpy the new fname to the new file
+                    strncpy(temp_inode.fname,dst_inode.fname,FNAME_MAX);
+                    //write the new inode data over the old
+                    if(write_inode(fs,dst_result_info.inode,&temp_inode)){
+                        if(fs_remove_file(fs, fname_src) == 0){
+                            return 0;
+                        }
+                        fprintf(stderr, "Failed to remove old file\n");
+                    }
+                    fprintf(stderr, "Failed to write inode\n");
+
+                }
+
+            }
+            fprintf(stderr, "Failed to craete file\n");
+            return -1;
+        }
+        fprintf(stderr, "Files to locate file\n");
+        return -1;
+
+    }
+    fprintf(stderr, "Failed param check\n");
     return -1;
 }
 
